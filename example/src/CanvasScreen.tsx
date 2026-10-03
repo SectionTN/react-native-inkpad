@@ -1,11 +1,16 @@
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InkCanvas, type InkCanvasRef, type InkState } from 'react-native-inkpad';
+import { sample } from './sample';
 
 export function CanvasScreen() {
   const canvas = useRef<InkCanvasRef>(null);
   const [state, setState] = useState<InkState>({ strokeCount: 0, canUndo: false, canRedo: false });
   const [erasing, setErasing] = useState(false);
+  const [note, setNote] = useState('none');
+  const report = (task: Promise<string>) => {
+    task.then(setNote, (error: Error) => setNote(error.message));
+  };
 
   const actions = [
     { id: 'undo', label: 'Undo', run: () => canvas.current?.undo() },
@@ -15,6 +20,25 @@ export function CanvasScreen() {
       id: 'eraser',
       label: `Eraser: ${erasing ? 'on' : 'off'}`,
       run: () => setErasing((on) => !on),
+    },
+    {
+      id: 'load-sample',
+      label: 'Load sample',
+      run: () =>
+        report(canvas.current?.setStrokes(sample).then(() => 'loaded') ?? Promise.resolve('none')),
+    },
+    {
+      id: 'reload',
+      label: 'Reload',
+      run: () =>
+        report(
+          (async () => {
+            const doc = await canvas.current?.getStrokes();
+            if (!doc) return 'none';
+            await canvas.current?.setStrokes(doc);
+            return `reloaded ${doc.strokes.length}`;
+          })(),
+        ),
     },
   ];
 
@@ -28,7 +52,7 @@ export function CanvasScreen() {
         ))}
       </View>
       <Text testID="status">
-        strokes: {state.strokeCount} | canUndo: {state.canUndo ? 'yes' : 'no'}
+        strokes: {state.strokeCount} | canUndo: {state.canUndo ? 'yes' : 'no'} | last: {note}
       </Text>
       <InkCanvas
         ref={canvas}

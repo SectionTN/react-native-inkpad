@@ -186,6 +186,41 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     if (strokes.isNotEmpty()) replaceAll(emptyList())
   }
 
+  internal fun getStrokes(requestId: Int) {
+    val doc = Doc(width / density, height / density, strokes.map(InkConverter::fromInk))
+    emitResult(requestId, DocumentJson.write(doc))
+  }
+
+  internal fun setStrokes(requestId: Int, json: String?) {
+    try {
+      val next = DocumentJson.parse(json ?: "").strokes.map(InkConverter::toInk)
+      replaceAll(next)
+      emitResult(requestId, "")
+    } catch (e: InkpadException) {
+      emitError(requestId, e.code, e.message ?: "")
+    } catch (e: IllegalArgumentException) {
+      emitError(requestId, ErrorCodes.NATIVE, e.message ?: "Ink rejected the strokes")
+    }
+  }
+
+  internal fun emitResult(requestId: Int, payload: String) = emitAnswer(requestId, true, payload, "", "")
+
+  internal fun emitError(requestId: Int, code: String, message: String) =
+    emitAnswer(requestId, false, "", code, message)
+
+  private fun emitAnswer(requestId: Int, ok: Boolean, payload: String, code: String, message: String) {
+    emit(
+      "topInkResult",
+      Arguments.createMap().apply {
+        putInt("requestId", requestId)
+        putBoolean("ok", ok)
+        putString("payload", payload)
+        putString("errorCode", code)
+        putString("errorMessage", message)
+      },
+    )
+  }
+
   private fun replaceAll(next: List<InkpadStroke>) {
     history.record(StrokeHistory.Op.Replace(strokes.toList(), next))
     strokes.clear()

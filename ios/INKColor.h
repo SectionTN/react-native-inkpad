@@ -1,0 +1,9 @@
+#import <UIKit/UIKit.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+FOUNDATION_EXPORT NSString *INKHexFromColor(UIColor *color);
+FOUNDATION_EXPORT UIColor *INKColorFromHex(NSString *hex);
+FOUNDATION_EXPORT BOOL INKIsHexColor(id _Nullable value);
+
+NS_ASSUME_NONNULL_END

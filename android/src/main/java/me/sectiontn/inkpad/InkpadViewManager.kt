@@ -55,6 +55,10 @@ class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInte
 
   override fun clear(view: InkpadView) = view.clear()
 
+  override fun getStrokes(view: InkpadView, requestId: Int) = view.getStrokes(requestId)
+
+  override fun setStrokes(view: InkpadView, requestId: Int, json: String?) = view.setStrokes(requestId, json)
+
   override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> =
     EVENTS.associateWith { mapOf("registrationName" to it.replaceFirst("top", "on")) }
 

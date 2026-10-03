@@ -9,6 +9,8 @@
 
 #import "INKBrushes.h"
 #import "INKCanvasView.h"
+#import "INKColor.h"
+#import "INKStrokeCodec.h"
 #import "RCTFabricComponentsPlugins.h"
 
 using namespace facebook::react;
@@ -16,12 +18,25 @@ using namespace facebook::react;
 @interface INKPadView () <RCTInkpadViewViewProtocol, PKCanvasViewDelegate>
 @end
 
+static NSString *INKInputName(UITouchType type)
+{
+  switch (type) {
+    case UITouchTypePencil:
+      return @"stylus";
+    case UITouchTypeIndirectPointer:
+      return @"mouse";
+    default:
+      return @"touch";
+  }
+}
+
 @implementation INKPadView {
   INKCanvasView *_canvas;
   INKBrushType _brushType;
   UIColor *_brushColor;
   CGFloat _brushSize;
   BOOL _erasing;
+  NSMutableDictionary<NSDate *, INKBrushInfo *> *_brushes;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -44,6 +59,7 @@ using namespace facebook::react;
     _brushType = INKBrushTypePen;
     _brushColor = UIColor.blackColor;
     _brushSize = 3;
+    _brushes = [NSMutableDictionary new];
 
     _canvas = [[INKCanvasView alloc] initWithFrame:frame];
     _canvas.delegate = self;
@@ -127,6 +143,44 @@ using namespace facebook::react;
   _canvas.drawing = drawing;
 }
 
+- (void)getStrokes:(NSInteger)requestId
+{
+  NSString *json = [INKStrokeCodec encodeDrawing:_canvas.drawing size:self.bounds.size brushes:_brushes];
+  [self emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+}
+
+- (void)setStrokes:(NSInteger)requestId json:(NSString *)json
+{
+  NSString *errorCode = nil;
+  NSString *message = nil;
+  INKDecodedDrawing *decoded = [INKStrokeCodec decode:json errorCode:&errorCode message:&message];
+  if (decoded == nil) {
+    [self emitResult:requestId ok:NO payload:@"" errorCode:errorCode message:message];
+    return;
+  }
+  [_brushes addEntriesFromDictionary:decoded.brushes];
+  [self replaceDrawing:decoded.drawing];
+  [self emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+}
+
+- (void)emitResult:(NSInteger)requestId
+                ok:(BOOL)ok
+           payload:(NSString *)payload
+         errorCode:(NSString *)errorCode
+           message:(NSString *)message
+{
+  if (!_eventEmitter) {
+    return;
+  }
+  InkpadViewEventEmitter::OnInkResult event;
+  event.requestId = (int)requestId;
+  event.ok = ok;
+  event.payload = std::string(payload.UTF8String);
+  event.errorCode = std::string(errorCode.UTF8String);
+  event.errorMessage = std::string(message.UTF8String);
+  std::static_pointer_cast<const InkpadViewEventEmitter>(_eventEmitter)->onInkResult(event);
+}
+
 - (void)canvasViewDidBeginUsingTool:(PKCanvasView *)canvasView
 {
   if (_eventEmitter && !_erasing) {
@@ -143,10 +197,28 @@ using namespace facebook::react;
 
 - (void)canvasViewDrawingDidChange:(PKCanvasView *)canvasView
 {
+  [self rememberNewStrokes];
   // Undo registration can land after this callback, so read the undo state on the next run loop turn.
   dispatch_async(dispatch_get_main_queue(), ^{
     [self emitChange];
   });
+}
+
+// A stroke PencilKit just added has no brush entry yet, so it takes the brush in use right now.
+- (void)rememberNewStrokes
+{
+  for (PKStroke *stroke in _canvas.drawing.strokes) {
+    NSDate *created = stroke.path.creationDate;
+    if (_brushes[created] != nil) {
+      continue;
+    }
+    INKBrushInfo *info = [INKBrushInfo new];
+    info.type = _brushType;
+    info.color = INKHexFromColor(_brushColor);
+    info.size = _brushSize;
+    info.input = INKInputName(_canvas.lastTouchType);
+    _brushes[created] = info;
+  }
 }
 
 - (void)emitChange

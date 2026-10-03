@@ -1,6 +1,6 @@
 import type { Ref } from 'react';
 import type { ColorValue, ViewProps } from 'react-native';
-import type { BrushType } from './document';
+import type { BrushType, InkDocument } from './document';
 
 export type { BrushType };
 
@@ -12,6 +12,8 @@ export interface InkCanvasRef {
   undo(): void;
   redo(): void;
   clear(): void;
+  getStrokes(): Promise<InkDocument>;
+  setStrokes(doc: InkDocument): Promise<void>;
 }
 
 export type InkCanvasProps = ViewProps & {
