@@ -1,0 +1,13 @@
+pre-commit:
+  parallel: true
+  commands:
+    biome:
+      glob: "*.{js,jsx,ts,tsx,json}"
+      run: yarn biome check {staged_files}
+    types:
+      glob: "*.{ts,tsx}"
+      run: yarn typecheck
+commit-msg:
+  commands:
+    commitlint:
+      run: yarn commitlint --edit {1}
