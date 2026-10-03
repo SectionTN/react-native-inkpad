@@ -1,4 +1,4 @@
 {
   "extends": "./tsconfig",
-  "exclude": ["example", "lib"]
+  "exclude": ["example", "lib", "e2e", "e2e.config.ts", "vitest.config.ts"]
 }
