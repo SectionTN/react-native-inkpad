@@ -10,6 +10,7 @@
 #import "INKBrushes.h"
 #import "INKCanvasView.h"
 #import "INKColor.h"
+#import "INKImageExporter.h"
 #import "INKStrokeCodec.h"
 #import "RCTFabricComponentsPlugins.h"
 
@@ -161,6 +162,29 @@ static NSString *INKInputName(UITouchType type)
   [_brushes addEntriesFromDictionary:decoded.brushes];
   [self replaceDrawing:decoded.drawing];
   [self emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+}
+
+- (void)exportImage:(NSInteger)requestId optionsJson:(NSString *)optionsJson
+{
+  __weak INKPadView *weakSelf = self;
+  [INKImageExporter exportDrawing:_canvas.drawing
+                       canvasSize:self.bounds.size
+                      canvasColor:_canvas.backgroundColor ?: UIColor.clearColor
+                      optionsJSON:optionsJson
+                       completion:^(NSString *json, NSString *errorCode, NSString *message) {
+                         dispatch_async(dispatch_get_main_queue(), ^{
+                           INKPadView *view = weakSelf;
+                           if (json != nil) {
+                             [view emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+                           } else {
+                             [view emitResult:requestId
+                                           ok:NO
+                                      payload:@""
+                                    errorCode:errorCode ?: @"E_EXPORT_FAILED"
+                                      message:message ?: @"export failed"];
+                           }
+                         });
+                       }];
 }
 
 - (void)emitResult:(NSInteger)requestId

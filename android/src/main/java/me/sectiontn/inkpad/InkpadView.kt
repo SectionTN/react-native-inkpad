@@ -18,6 +18,7 @@ import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
+import java.util.concurrent.Executors
 
 @SuppressLint("ViewConstructor")
 class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(reactContext) {
@@ -203,6 +204,28 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
   }
 
+  internal fun exportImage(requestId: Int, optionsJson: String?) {
+    val options = ExportOptions.parse(optionsJson)
+    val snapshot = strokes.toList()
+    val canvasWidth = width / density
+    val canvasHeight = height / density
+    val color = canvasColor
+    EXPORTER.execute {
+      val result = runCatching {
+        ImageExporter.export(reactContext, snapshot, canvasWidth, canvasHeight, color, options)
+      }
+      post {
+        result.fold(
+          onSuccess = { emitResult(requestId, it) },
+          onFailure = { error ->
+            val code = (error as? InkpadException)?.code ?: ErrorCodes.EXPORT_FAILED
+            emitError(requestId, code, error.message ?: "export failed")
+          },
+        )
+      }
+    }
+  }
+
   internal fun emitResult(requestId: Int, payload: String) = emitAnswer(requestId, true, payload, "", "")
 
   internal fun emitError(requestId: Int, code: String, message: String) =
@@ -249,5 +272,6 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
   companion object {
     private const val ERASER_RADIUS = 10f
+    private val EXPORTER = Executors.newSingleThreadExecutor()
   }
 }

@@ -1,11 +1,13 @@
 import type * as React from 'react';
 import { useEffect, useImperativeHandle, useRef } from 'react';
+import { PixelRatio } from 'react-native';
 import { validateDocument } from './document';
 import { ErrorCode, InkpadError } from './errors';
+import { toNativeImageOptions } from './imageOptions';
 import { toNativeInkProps } from './nativeProps';
 import { Requests } from './requests';
 import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
-import type { InkCanvasProps } from './types';
+import type { ImageResult, InkCanvasProps } from './types';
 
 type NativeRef = React.ElementRef<typeof NativeInkpadView>;
 
@@ -50,6 +52,13 @@ export function InkCanvas({
         await send((node, requestId) =>
           Commands.setStrokes(node, requestId, JSON.stringify(valid)),
         );
+      },
+      toImage: async (options = {}) => {
+        const native = toNativeImageOptions(options, PixelRatio.get());
+        const payload = await send((node, requestId) =>
+          Commands.exportImage(node, requestId, JSON.stringify(native)),
+        );
+        return JSON.parse(payload) as ImageResult;
       },
     };
   }, [requests]);

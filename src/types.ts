@@ -14,6 +14,7 @@ export interface InkCanvasRef {
   clear(): void;
   getStrokes(): Promise<InkDocument>;
   setStrokes(doc: InkDocument): Promise<void>;
+  toImage(options?: ImageOptions): Promise<ImageResult>;
 }
 
 export type InkCanvasProps = ViewProps & {
@@ -26,3 +27,16 @@ export type InkCanvasProps = ViewProps & {
   onStrokeEnd?: () => void;
   onChange?: (state: InkState) => void;
 };
+
+export type Trim = boolean | { padding: number };
+
+export type ImageOptions = {
+  format?: 'png' | 'jpeg';
+  quality?: number;
+  scale?: number;
+  trim?: Trim;
+  background?: boolean;
+  base64?: boolean;
+};
+
+export type ImageResult = { uri: string; width: number; height: number; base64?: string };

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { InkCanvas, type InkCanvasRef, type InkState } from 'react-native-inkpad';
 import { sample } from './sample';
 
@@ -8,6 +8,7 @@ export function CanvasScreen() {
   const [state, setState] = useState<InkState>({ strokeCount: 0, canUndo: false, canRedo: false });
   const [erasing, setErasing] = useState(false);
   const [note, setNote] = useState('none');
+  const [preview, setPreview] = useState<string | null>(null);
   const report = (task: Promise<string>) => {
     task.then(setNote, (error: Error) => setNote(error.message));
   };
@@ -40,6 +41,17 @@ export function CanvasScreen() {
           })(),
         ),
     },
+    {
+      id: 'export-png',
+      label: 'Export PNG',
+      run: () =>
+        report(
+          canvas.current?.toImage({ trim: { padding: 8 } }).then((image) => {
+            setPreview(image.uri);
+            return `png ${image.width}x${image.height}`;
+          }) ?? Promise.resolve('none'),
+        ),
+    },
   ];
 
   return (
@@ -62,6 +74,14 @@ export function CanvasScreen() {
         background={{ color: '#FFFFFF' }}
         onChange={setState}
       />
+      {preview ? (
+        <Image
+          testID="preview"
+          source={{ uri: preview }}
+          style={styles.preview}
+          resizeMode="contain"
+        />
+      ) : null}
       <Text style={styles.filler}>Scroll area below the canvas</Text>
     </ScrollView>
   );
@@ -73,4 +93,5 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 6 },
   filler: { height: 400 },
+  preview: { height: 120, borderWidth: 1, borderColor: '#EEEEEE' },
 });

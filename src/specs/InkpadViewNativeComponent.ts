@@ -44,10 +44,15 @@ interface NativeCommands {
     requestId: CodegenTypes.Int32,
     json: string,
   ) => void;
+  exportImage: (
+    viewRef: React.ElementRef<HostComponent<NativeProps>>,
+    requestId: CodegenTypes.Int32,
+    optionsJson: string,
+  ) => void;
 }
 
 export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
-  supportedCommands: ['undo', 'redo', 'clear', 'getStrokes', 'setStrokes'],
+  supportedCommands: ['undo', 'redo', 'clear', 'getStrokes', 'setStrokes', 'exportImage'],
 });
 
 export default codegenNativeComponent<NativeProps>('InkpadView') as HostComponent<NativeProps>;
