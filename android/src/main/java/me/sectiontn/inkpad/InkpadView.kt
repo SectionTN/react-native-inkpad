@@ -3,6 +3,7 @@ package me.sectiontn.inkpad
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.graphics.Matrix
+import android.os.Build
 import android.view.MotionEvent
 import android.widget.FrameLayout
 import androidx.ink.authoring.InProgressStrokeId
@@ -48,6 +49,8 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
   init {
+    // Forced dark mode would shift ink and background colors away from what exports contain.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) isForceDarkAllowed = false
     strokesView.strokes = strokes
     addView(strokesView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     addView(inProgressView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
