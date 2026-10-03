@@ -82,12 +82,15 @@ Change the import and keep the rest of your screen:
 It takes the same props, callbacks and ref methods, and `onOK` still gets a `data:` URL. Signatures you saved with `getData` load with `fromData`. A few things differ:
 
 - Props that only made sense in a WebView, like `customHtml` and `webviewProps`, are ignored, with one warning in development. From `webStyle`, only a rule that hides the footer still works.
+- `maxWidth` sets the pen size. The pen thins with speed on its own, so `minWidth`, `dotSize` and `velocityFilterWeight` are ignored.
 - `bgSrc`, `dataURL` and `setDataURL` arrive in 0.3.
 - The eraser removes whole strokes instead of pixels.
 
 ## Platform notes
 
 Strokes look a little different on Android and iOS, because each platform draws with its own engine. On iOS, the canvas keeps ink colors exact in dark mode.
+
+On Android, the pen follows a stylus's pressure. Fingers and mice rarely report pressure, so their pen strokes thin out as they speed up, the way react-native-signature-canvas draws.
 
 ## License
 

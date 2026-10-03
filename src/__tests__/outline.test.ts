@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { InkStroke } from '../document';
+import type { InkStroke, InputType } from '../document';
 import { outlinePath, widthPoints } from '../geometry/outline';
 
-const stroke = (type: 'pen' | 'marker', points: number[], size = 4): InkStroke => ({
+const stroke = (
+  type: 'pen' | 'marker',
+  points: number[],
+  size = 4,
+  input: InputType = 'touch',
+): InkStroke => ({
   brush: { type, color: '#000000FF', size },
-  input: 'touch',
+  input,
   points,
 });
 
@@ -16,8 +21,14 @@ describe('widthPoints', () => {
     ]);
   });
 
-  it('follows pressure for the pen', () => {
-    expect(widthPoints(stroke('pen', [0, 0, 0, 0.5, -1, -1], 10))[0]?.w).toBeCloseTo(7);
+  it('follows stylus pressure for the pen', () => {
+    expect(widthPoints(stroke('pen', [0, 0, 0, 0.5, -1, -1], 10, 'stylus'))[0]?.w).toBeCloseTo(7);
+  });
+
+  it('thins a fast touch stroke even when the screen reports pressure', () => {
+    const points = widthPoints(stroke('pen', [0, 0, 0, 1, -1, -1, 100, 0, 10, 1, -1, -1]));
+    expect(points[0]?.w).toBe(4);
+    expect(points[1]?.w).toBeCloseTo(1.2);
   });
 
   it('thins a fast pen stroke that has no pressure', () => {

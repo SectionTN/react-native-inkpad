@@ -7,9 +7,9 @@ const MIN_GAP = 0.5;
 const MIN_WIDTH_RATIO = 0.3;
 const VELOCITY_FILTER = 0.7;
 
-// A pen follows pressure when the device reports it. Otherwise it thins with speed, like signature_pad.
+// A stylus pen follows pressure. Touch and mouse thin with speed, like signature_pad, since screens rarely report it.
 export function widthPoints(stroke: InkStroke): WidthPoint[] {
-  const { brush, points } = stroke;
+  const { brush, input, points } = stroke;
   const out: WidthPoint[] = [];
   let velocity = 0;
   let lastTime = 0;
@@ -22,8 +22,8 @@ export function widthPoints(stroke: InkStroke): WidthPoint[] {
     if (previous && Math.hypot(x - previous.x, y - previous.y) < MIN_GAP) continue;
     let w = brush.size;
     if (brush.type === 'pen') {
-      if (pressure >= 0) {
-        w = brush.size * (0.4 + 0.6 * pressure);
+      if (input === 'stylus') {
+        if (pressure >= 0) w = brush.size * (0.4 + 0.6 * pressure);
       } else if (previous) {
         const speed = Math.hypot(x - previous.x, y - previous.y) / Math.max(1, t - lastTime);
         velocity = VELOCITY_FILTER * speed + (1 - VELOCITY_FILTER) * velocity;

@@ -197,7 +197,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
   internal fun setStrokes(requestId: Int, json: String?) {
     try {
-      val next = DocumentJson.parse(json ?: "").strokes.map(InkConverter::toInk)
+      val metrics = resources.displayMetrics
+      val unitLengthCm = InkConverter.strokeUnitLengthCm(density, metrics.xdpi, metrics.ydpi)
+      val next = DocumentJson.parse(json ?: "").strokes.map { InkConverter.toInk(it, unitLengthCm) }
       replaceAll(next)
       emitResult(requestId, "")
     } catch (e: InkpadException) {

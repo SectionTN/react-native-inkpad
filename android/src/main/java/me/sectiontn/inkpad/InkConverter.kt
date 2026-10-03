@@ -6,7 +6,13 @@ import androidx.ink.strokes.Stroke
 import androidx.ink.strokes.StrokeInput
 
 internal object InkConverter {
-  fun toInk(stroke: DocStroke): InkpadStroke {
+  private const val CM_PER_INCH = 2.54f
+
+  // Speed behaviors need a stroke unit's physical size. This matches what InProgressStrokesView uses live.
+  fun strokeUnitLengthCm(density: Float, xdpi: Float, ydpi: Float): Float =
+    density * CM_PER_INCH * (1f / xdpi + 1f / ydpi) / 2f
+
+  fun toInk(stroke: DocStroke, unitLengthCm: Float): InkpadStroke {
     val tool = when (stroke.input) {
       InputType.STYLUS -> InputToolType.STYLUS
       InputType.MOUSE -> InputToolType.MOUSE
@@ -16,7 +22,7 @@ internal object InkConverter {
     val p = stroke.points
     var i = 0
     while (i < p.size) {
-      batch.add(tool, p[i], p[i + 1], p[i + 2].toLong(), StrokeInput.NO_STROKE_UNIT_LENGTH, p[i + 3], p[i + 4], p[i + 5])
+      batch.add(tool, p[i], p[i + 1], p[i + 2].toLong(), unitLengthCm, p[i + 3], p[i + 4], p[i + 5])
       i += DocumentJson.STRIDE
     }
     val ink = Stroke(Brushes.create(stroke.type, stroke.color, stroke.size), batch)
