@@ -1,7 +1,8 @@
 import type { Ref } from 'react';
 import type { ColorValue, ViewProps } from 'react-native';
+import type { BrushType } from './document';
 
-export type BrushType = 'pen' | 'marker' | 'highlighter';
+export type { BrushType };
 
 export type Brush = { type?: BrushType; color?: ColorValue; size?: number };
 
