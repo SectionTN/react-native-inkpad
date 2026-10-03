@@ -10,5 +10,6 @@ export type {
   InkCanvasProps,
   InkCanvasRef,
   InkState,
+  SvgOptions,
   Trim,
 } from './types';

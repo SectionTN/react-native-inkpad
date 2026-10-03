@@ -52,6 +52,15 @@ export function CanvasScreen() {
           }) ?? Promise.resolve('none'),
         ),
     },
+    {
+      id: 'export-svg',
+      label: 'Export SVG',
+      run: () =>
+        report(
+          canvas.current?.toSVG({ trim: true }).then((svg) => `svg ${svg.length} chars`) ??
+            Promise.resolve('none'),
+        ),
+    },
   ];
 
   return (

@@ -1,12 +1,14 @@
 import type * as React from 'react';
 import { useEffect, useImperativeHandle, useRef } from 'react';
-import { PixelRatio } from 'react-native';
+import { PixelRatio, processColor } from 'react-native';
+import { argbToHex } from './color';
 import { validateDocument } from './document';
 import { ErrorCode, InkpadError } from './errors';
 import { toNativeImageOptions } from './imageOptions';
 import { toNativeInkProps } from './nativeProps';
 import { Requests } from './requests';
 import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
+import { toSVG } from './svg/toSVG';
 import type { ImageResult, InkCanvasProps } from './types';
 
 type NativeRef = React.ElementRef<typeof NativeInkpadView>;
@@ -26,6 +28,8 @@ export function InkCanvas({
   const requestsRef = useRef<Requests | null>(null);
   requestsRef.current ??= new Requests();
   const requests = requestsRef.current;
+  const processed = processColor(background?.color);
+  const backgroundHex = typeof processed === 'number' ? argbToHex(processed) : undefined;
 
   useEffect(
     () => () => requests.rejectAll(new InkpadError(ErrorCode.NOT_MOUNTED, 'InkCanvas unmounted')),
@@ -42,11 +46,12 @@ export function InkCanvas({
         if (!node) throw new InkpadError(ErrorCode.NOT_MOUNTED, 'InkCanvas is not mounted');
         command(node, requestId);
       });
+    const getStrokes = async () => validateDocument(JSON.parse(await send(Commands.getStrokes)));
     return {
       undo: () => run(Commands.undo),
       redo: () => run(Commands.redo),
       clear: () => run(Commands.clear),
-      getStrokes: async () => validateDocument(JSON.parse(await send(Commands.getStrokes))),
+      getStrokes,
       setStrokes: async (doc) => {
         const valid = validateDocument(doc);
         await send((node, requestId) =>
@@ -60,8 +65,13 @@ export function InkCanvas({
         );
         return JSON.parse(payload) as ImageResult;
       },
+      toSVG: async (options = {}) =>
+        toSVG(await getStrokes(), {
+          trim: options.trim,
+          backgroundColor: options.background === false ? undefined : backgroundHex,
+        }),
     };
-  }, [requests]);
+  }, [requests, backgroundHex]);
 
   return (
     <NativeInkpadView

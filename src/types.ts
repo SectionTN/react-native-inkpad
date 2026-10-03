@@ -15,6 +15,7 @@ export interface InkCanvasRef {
   getStrokes(): Promise<InkDocument>;
   setStrokes(doc: InkDocument): Promise<void>;
   toImage(options?: ImageOptions): Promise<ImageResult>;
+  toSVG(options?: SvgOptions): Promise<string>;
 }
 
 export type InkCanvasProps = ViewProps & {
@@ -40,3 +41,5 @@ export type ImageOptions = {
 };
 
 export type ImageResult = { uri: string; width: number; height: number; base64?: string };
+
+export type SvgOptions = { trim?: Trim; background?: boolean };
