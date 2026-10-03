@@ -84,3 +84,6 @@ android/generated
 
 # React Native Nitro Modules
 nitrogen/
+
+# e2e runs
+.e2e/

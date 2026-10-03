@@ -44,7 +44,9 @@
     "release": "release-it --only-version",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "e2e run",
+    "e2e:android:build": "cd example && npx expo prebuild --platform android --no-install && cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a"
   },
   "keywords": [
     "react-native",
@@ -73,11 +75,15 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@commitlint/config-conventional": "^21.2.0",
+    "@e2e-dev/mobile": "0.9.1",
     "@react-native/babel-preset": "0.86.2",
     "@release-it/conventional-changelog": "^12.0.0",
+    "@types/node": "^26.6.4",
     "@types/react": "^19.2.0",
+    "ai": "^7.0.0",
     "commitlint": "^21.2.1",
     "del-cli": "^7.0.0",
+    "e2e": "0.16.0",
     "lefthook": "^2.1.10",
     "react": "19.2.3",
     "react-native": "0.86.3",
