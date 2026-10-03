@@ -18,6 +18,10 @@ internal class StrokesView(context: Context) : View(context) {
     if (Color.alpha(canvasColor) > 0) canvas.drawColor(canvasColor)
     val density = resources.displayMetrics.density
     canvasToScreen.setScale(density, density)
+    // The renderer reads the matrix only for quality, so the canvas needs the same transform.
+    val saved = canvas.save()
+    canvas.concat(canvasToScreen)
     for (item in strokes) renderer.draw(canvas, item.stroke, canvasToScreen)
+    canvas.restoreToCount(saved)
   }
 }

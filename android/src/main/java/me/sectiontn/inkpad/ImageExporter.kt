@@ -48,6 +48,7 @@ internal object ImageExporter {
         setScale(options.scale, options.scale)
         preTranslate(-left, -top)
       }
+      canvas.concat(transform)
       for (item in strokes) renderer.draw(canvas, item.stroke, transform)
       val bytes = ByteArrayOutputStream().use { out ->
         val format = if (options.jpeg) Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
