@@ -13,7 +13,7 @@
 
 using namespace facebook::react;
 
-@interface INKPadView () <PKCanvasViewDelegate>
+@interface INKPadView () <RCTInkpadViewViewProtocol, PKCanvasViewDelegate>
 @end
 
 @implementation INKPadView {
@@ -85,6 +85,43 @@ using namespace facebook::react;
 - (void)applyTool
 {
   _canvas.tool = INKMakeInkingTool(_brushType, _brushColor, _brushSize);
+}
+
+- (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args
+{
+  RCTInkpadViewHandleCommand(self, commandName, args);
+}
+
+- (void)undo
+{
+  if (_canvas.undoManager.canUndo) {
+    [_canvas.undoManager undo];
+  }
+}
+
+- (void)redo
+{
+  if (_canvas.undoManager.canRedo) {
+    [_canvas.undoManager redo];
+  }
+}
+
+- (void)clear
+{
+  if (_canvas.drawing.strokes.count > 0) {
+    [self replaceDrawing:[PKDrawing new]];
+  }
+}
+
+// Registering the reverse inside the undo handler is what makes redo work.
+- (void)replaceDrawing:(PKDrawing *)drawing
+{
+  PKDrawing *previous = _canvas.drawing;
+  [_canvas.undoManager registerUndoWithTarget:self
+                                      handler:^(INKPadView *target) {
+                                        [target replaceDrawing:previous];
+                                      }];
+  _canvas.drawing = drawing;
 }
 
 - (void)canvasViewDidBeginUsingTool:(PKCanvasView *)canvasView

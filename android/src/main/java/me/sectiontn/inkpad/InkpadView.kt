@@ -25,6 +25,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   private var activePointerId = MotionEvent.INVALID_POINTER_ID
 
   internal val strokes = mutableListOf<InkpadStroke>()
+  private val history = StrokeHistory<InkpadStroke>()
 
   internal var brushType = BrushType.PEN
   internal var brushColor = Color.BLACK
@@ -112,7 +113,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   private fun handleFinished(finished: Map<InProgressStrokeId, Stroke>) {
     for ((id, stroke) in finished) {
       val meta = pending.remove(id) ?: continue
-      strokes.add(InkpadStroke(stroke, meta.type, meta.color, meta.size, meta.input))
+      val item = InkpadStroke(stroke, meta.type, meta.color, meta.size, meta.input)
+      strokes.add(item)
+      history.record(StrokeHistory.Op.Add(item))
     }
     strokesView.invalidate()
     inProgressView.removeFinishedStrokes(finished.keys)
@@ -124,10 +127,34 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       "topInkChange",
       Arguments.createMap().apply {
         putInt("strokeCount", strokes.size)
-        putBoolean("canUndo", false)
-        putBoolean("canRedo", false)
+        putBoolean("canUndo", history.canUndo)
+        putBoolean("canRedo", history.canRedo)
       },
     )
+  }
+
+  internal fun undo() {
+    if (history.undo(strokes)) changed()
+  }
+
+  internal fun redo() {
+    if (history.redo(strokes)) changed()
+  }
+
+  internal fun clear() {
+    if (strokes.isNotEmpty()) replaceAll(emptyList())
+  }
+
+  private fun replaceAll(next: List<InkpadStroke>) {
+    history.record(StrokeHistory.Op.Replace(strokes.toList(), next))
+    strokes.clear()
+    strokes.addAll(next)
+    changed()
+  }
+
+  private fun changed() {
+    strokesView.invalidate()
+    emitChange()
   }
 
   // getEventDispatcher(context) is missing on RN 0.80, which we still support.

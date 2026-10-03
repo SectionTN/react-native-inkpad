@@ -1,5 +1,6 @@
+import type * as React from 'react';
 import type { CodegenTypes, ColorValue, HostComponent, ViewProps } from 'react-native';
-import { codegenNativeComponent } from 'react-native';
+import { codegenNativeCommands, codegenNativeComponent } from 'react-native';
 
 type EmptyEvent = Readonly<{}>;
 
@@ -19,5 +20,15 @@ export interface NativeProps extends ViewProps {
   onInkStrokeEnd?: CodegenTypes.DirectEventHandler<EmptyEvent>;
   onInkChange?: CodegenTypes.DirectEventHandler<ChangeEvent>;
 }
+
+interface NativeCommands {
+  undo: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  redo: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  clear: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+}
+
+export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
+  supportedCommands: ['undo', 'redo', 'clear'],
+});
 
 export default codegenNativeComponent<NativeProps>('InkpadView') as HostComponent<NativeProps>;

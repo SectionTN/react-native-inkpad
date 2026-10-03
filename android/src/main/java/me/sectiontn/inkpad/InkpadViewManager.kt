@@ -44,6 +44,12 @@ class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInte
     view.canvasColor = value ?: Color.TRANSPARENT
   }
 
+  override fun undo(view: InkpadView) = view.undo()
+
+  override fun redo(view: InkpadView) = view.redo()
+
+  override fun clear(view: InkpadView) = view.clear()
+
   override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> =
     EVENTS.associateWith { mapOf("registrationName" to it.replaceFirst("top", "on")) }
 
