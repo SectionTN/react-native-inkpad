@@ -22,7 +22,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingTop: 48 },
+  root: { flex: 1, paddingTop: 48, backgroundColor: '#FFFFFF' },
   tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 16 },
   tab: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 6 },
 });
