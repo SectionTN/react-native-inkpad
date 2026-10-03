@@ -16,6 +16,7 @@ export interface InkCanvasRef {
 export type InkCanvasProps = ViewProps & {
   ref?: Ref<InkCanvasRef>;
   brush?: Brush;
+  tool?: 'draw' | 'erase';
   editable?: boolean;
   background?: { color?: ColorValue };
   onStrokeStart?: () => void;

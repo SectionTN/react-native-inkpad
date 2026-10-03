@@ -8,6 +8,11 @@ import android.widget.FrameLayout
 import androidx.ink.authoring.InProgressStrokeId
 import androidx.ink.authoring.InProgressStrokesFinishedListener
 import androidx.ink.authoring.InProgressStrokesView
+import androidx.ink.geometry.AffineTransform
+import androidx.ink.geometry.ImmutableParallelogram
+import androidx.ink.geometry.ImmutableSegment
+import androidx.ink.geometry.ImmutableVec
+import androidx.ink.geometry.Intersection.intersects
 import androidx.ink.strokes.Stroke
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
@@ -31,6 +36,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   internal var brushColor = Color.BLACK
   internal var brushSize = 3f
   internal var editable = true
+  internal var erasing = false
+  private var eraserLast: ImmutableVec? = null
+  private var eraseBefore: List<InkpadStroke>? = null
   internal var canvasColor = Color.TRANSPARENT
     set(value) {
       field = value
@@ -81,7 +89,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   @SuppressLint("ClickableViewAccessibility")
   override fun onTouchEvent(event: MotionEvent): Boolean {
     if (!editable) return false
-    return drawTouch(event)
+    return if (erasing) eraseTouch(event) else drawTouch(event)
   }
 
   private fun drawTouch(event: MotionEvent): Boolean {
@@ -108,6 +116,39 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       }
     }
     return true
+  }
+
+  private fun eraseTouch(event: MotionEvent): Boolean {
+    val point = ImmutableVec(event.x / density, event.y / density)
+    when (event.actionMasked) {
+      MotionEvent.ACTION_DOWN -> {
+        parent?.requestDisallowInterceptTouchEvent(true)
+        eraseBefore = strokes.toList()
+        eraseAlong(point, point)
+        eraserLast = point
+      }
+      MotionEvent.ACTION_MOVE -> {
+        eraserLast?.let { eraseAlong(it, point) }
+        eraserLast = point
+      }
+      MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+        val before = eraseBefore
+        if (before != null && before.size != strokes.size) {
+          history.record(StrokeHistory.Op.Replace(before, strokes.toList()))
+          emitChange()
+        }
+        eraseBefore = null
+        eraserLast = null
+      }
+    }
+    return true
+  }
+
+  private fun eraseAlong(from: ImmutableVec, to: ImmutableVec) {
+    val area = ImmutableParallelogram.fromSegmentAndPadding(ImmutableSegment(from, to), ERASER_RADIUS)
+    if (strokes.removeAll { it.stroke.shape.intersects(area, AffineTransform.IDENTITY) }) {
+      strokesView.invalidate()
+    }
   }
 
   private fun handleFinished(finished: Map<InProgressStrokeId, Stroke>) {
@@ -169,5 +210,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     MotionEvent.TOOL_TYPE_STYLUS -> InputType.STYLUS
     MotionEvent.TOOL_TYPE_MOUSE -> InputType.MOUSE
     else -> InputType.TOUCH
+  }
+
+  companion object {
+    private const val ERASER_RADIUS = 10f
   }
 }

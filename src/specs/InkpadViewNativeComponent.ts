@@ -14,6 +14,7 @@ export interface NativeProps extends ViewProps {
   brushType?: CodegenTypes.WithDefault<'pen' | 'marker' | 'highlighter', 'pen'>;
   brushColor?: ColorValue;
   brushSize?: CodegenTypes.WithDefault<CodegenTypes.Float, 3>;
+  tool?: CodegenTypes.WithDefault<'draw' | 'erase', 'draw'>;
   editable?: CodegenTypes.WithDefault<boolean, true>;
   canvasColor?: ColorValue;
   onInkStrokeStart?: CodegenTypes.DirectEventHandler<EmptyEvent>;

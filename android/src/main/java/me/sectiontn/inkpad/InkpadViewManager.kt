@@ -34,6 +34,11 @@ class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInte
     view.brushSize = value
   }
 
+  @ReactProp(name = "tool")
+  override fun setTool(view: InkpadView, value: String?) {
+    view.erasing = value == "erase"
+  }
+
   @ReactProp(name = "editable", defaultBoolean = true)
   override fun setEditable(view: InkpadView, value: Boolean) {
     view.editable = value

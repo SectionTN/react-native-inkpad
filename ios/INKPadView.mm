@@ -21,6 +21,7 @@ using namespace facebook::react;
   INKBrushType _brushType;
   UIColor *_brushColor;
   CGFloat _brushSize;
+  BOOL _erasing;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -77,6 +78,7 @@ using namespace facebook::react;
   _brushSize = newProps.brushSize;
   _canvas.backgroundColor = RCTUIColorFromSharedColor(newProps.canvasColor) ?: UIColor.clearColor;
   _canvas.drawingGestureRecognizer.enabled = newProps.editable;
+  _erasing = newProps.tool == InkpadViewTool::Erase;
   [self applyTool];
 
   [super updateProps:props oldProps:oldProps];
@@ -84,7 +86,8 @@ using namespace facebook::react;
 
 - (void)applyTool
 {
-  _canvas.tool = INKMakeInkingTool(_brushType, _brushColor, _brushSize);
+  _canvas.tool = _erasing ? [[PKEraserTool alloc] initWithEraserType:PKEraserTypeVector]
+                          : INKMakeInkingTool(_brushType, _brushColor, _brushSize);
 }
 
 - (void)handleCommand:(const NSString *)commandName args:(const NSArray *)args
@@ -126,14 +129,14 @@ using namespace facebook::react;
 
 - (void)canvasViewDidBeginUsingTool:(PKCanvasView *)canvasView
 {
-  if (_eventEmitter) {
+  if (_eventEmitter && !_erasing) {
     std::static_pointer_cast<const InkpadViewEventEmitter>(_eventEmitter)->onInkStrokeStart({});
   }
 }
 
 - (void)canvasViewDidEndUsingTool:(PKCanvasView *)canvasView
 {
-  if (_eventEmitter) {
+  if (_eventEmitter && !_erasing) {
     std::static_pointer_cast<const InkpadViewEventEmitter>(_eventEmitter)->onInkStrokeEnd({});
   }
 }

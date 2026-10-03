@@ -5,11 +5,17 @@ import { InkCanvas, type InkCanvasRef, type InkState } from 'react-native-inkpad
 export function CanvasScreen() {
   const canvas = useRef<InkCanvasRef>(null);
   const [state, setState] = useState<InkState>({ strokeCount: 0, canUndo: false, canRedo: false });
+  const [erasing, setErasing] = useState(false);
 
   const actions = [
     { id: 'undo', label: 'Undo', run: () => canvas.current?.undo() },
     { id: 'redo', label: 'Redo', run: () => canvas.current?.redo() },
     { id: 'clear', label: 'Clear', run: () => canvas.current?.clear() },
+    {
+      id: 'eraser',
+      label: `Eraser: ${erasing ? 'on' : 'off'}`,
+      run: () => setErasing((on) => !on),
+    },
   ];
 
   return (
@@ -27,6 +33,7 @@ export function CanvasScreen() {
       <InkCanvas
         ref={canvas}
         testID="canvas"
+        tool={erasing ? 'erase' : 'draw'}
         style={styles.canvas}
         background={{ color: '#FFFFFF' }}
         onChange={setState}

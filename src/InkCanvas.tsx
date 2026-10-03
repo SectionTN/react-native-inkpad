@@ -9,6 +9,7 @@ type NativeRef = React.ElementRef<typeof NativeInkpadView>;
 export function InkCanvas({
   ref,
   brush,
+  tool,
   editable,
   background,
   onStrokeStart,
@@ -32,7 +33,7 @@ export function InkCanvas({
   return (
     <NativeInkpadView
       {...viewProps}
-      {...toNativeInkProps({ brush, editable, background })}
+      {...toNativeInkProps({ brush, tool, editable, background })}
       ref={nativeRef}
       onInkStrokeStart={() => onStrokeStart?.()}
       onInkStrokeEnd={() => onStrokeEnd?.()}
