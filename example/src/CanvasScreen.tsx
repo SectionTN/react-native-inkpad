@@ -97,7 +97,7 @@ export function CanvasScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, paddingTop: 64, gap: 16 },
+  content: { padding: 16, gap: 16 },
   canvas: { height: 320, borderWidth: 1, borderColor: '#CCCCCC' },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 6 },

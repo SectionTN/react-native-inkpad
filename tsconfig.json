@@ -2,7 +2,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-inkpad": ["./src/index"]
+      "react-native-inkpad": ["./src/index"],
+      "react-native-inkpad/signature-canvas": ["./src/compat/SignatureCanvas"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

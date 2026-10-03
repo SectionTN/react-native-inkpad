@@ -10,6 +10,11 @@
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"
     },
+    "./signature-canvas": {
+      "react-native-inkpad-source": "./src/compat/SignatureCanvas.tsx",
+      "types": "./lib/typescript/src/compat/SignatureCanvas.d.ts",
+      "default": "./lib/module/compat/SignatureCanvas.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
