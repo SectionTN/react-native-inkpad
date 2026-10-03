@@ -25,18 +25,16 @@ buildscript {
   }
 }
 
-
 apply plugin: "com.android.library"
 
 if (project.extensions.findByName("kotlin") == null) {
   apply plugin: "kotlin-android"
 }
 
-
 apply plugin: "com.facebook.react"
 
 android {
-  namespace "com.inkpad"
+  namespace "me.sectiontn.inkpad"
 
   compileSdkVersion getExtOrDefault("compileSdkVersion")
 
@@ -52,4 +50,10 @@ android {
 
 dependencies {
   implementation "com.facebook.react:react-android"
+  implementation "androidx.ink:ink-authoring:1.0.0"
+  implementation "androidx.ink:ink-brush:1.0.0"
+  implementation "androidx.ink:ink-geometry:1.0.0"
+  implementation "androidx.ink:ink-rendering:1.0.0"
+  implementation "androidx.ink:ink-strokes:1.0.0"
+  testImplementation "junit:junit:4.13.2"
 }
