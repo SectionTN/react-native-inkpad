@@ -52,7 +52,7 @@ export function SignatureField() {
 | `onStrokeStart`, `onStrokeEnd` | `() => void` | |
 | `onChange` | `({ strokeCount, canUndo, canRedo }) => void` | |
 
-The eraser removes whole strokes. Sizes are in dp on Android and points on iOS.
+The eraser removes whole strokes. Sizes are in dp on Android and points on iOS. `style` takes the usual view styles, borders and rounded corners included, and strokes stay inside the border.
 
 ## Ref methods
 
@@ -88,7 +88,7 @@ It takes the same props, callbacks and ref methods, and `onOK` still gets a `dat
 
 ## Platform notes
 
-Strokes look a little different on Android and iOS, because each platform draws with its own engine. On iOS, the canvas keeps ink colors exact in dark mode.
+Strokes look a little different on Android and iOS, because each platform draws with its own engine. The canvas keeps ink colors exact in dark mode, even when Android forces dark colors onto the app.
 
 On Android, the pen follows a stylus's pressure. Fingers and mice rarely report pressure, so their pen strokes thin out as they speed up, the way react-native-signature-canvas draws.
 
