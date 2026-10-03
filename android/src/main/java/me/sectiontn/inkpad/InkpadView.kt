@@ -1,6 +1,7 @@
 package me.sectiontn.inkpad
 
 import android.annotation.SuppressLint
+import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Build
@@ -17,6 +18,7 @@ import androidx.ink.geometry.Intersection.intersects
 import androidx.ink.strokes.Stroke
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
+import com.facebook.react.uimanager.BackgroundStyleApplicator
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
 import java.util.concurrent.Executors
@@ -88,6 +90,14 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       )
       child.layout(0, 0, w, h)
     }
+  }
+
+  // Keeps the fill and strokes inside the border and its rounded corners.
+  override fun dispatchDraw(canvas: Canvas) {
+    val saved = canvas.save()
+    BackgroundStyleApplicator.clipToPaddingBox(this, canvas)
+    super.dispatchDraw(canvas)
+    canvas.restoreToCount(saved)
   }
 
   @SuppressLint("ClickableViewAccessibility")

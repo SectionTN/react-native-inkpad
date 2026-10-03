@@ -75,16 +75,14 @@ export function CanvasScreen() {
       <Text testID="status">
         strokes: {state.strokeCount} | canUndo: {state.canUndo ? 'yes' : 'no'} | last: {note}
       </Text>
-      <View style={styles.frame}>
-        <InkCanvas
-          ref={canvas}
-          testID="canvas"
-          tool={erasing ? 'erase' : 'draw'}
-          style={styles.canvas}
-          background={{ color: '#FFFFFF' }}
-          onChange={setState}
-        />
-      </View>
+      <InkCanvas
+        ref={canvas}
+        testID="canvas"
+        tool={erasing ? 'erase' : 'draw'}
+        style={styles.canvas}
+        background={{ color: '#FFFFFF' }}
+        onChange={setState}
+      />
       {preview ? (
         <Image
           testID="preview"
@@ -100,8 +98,7 @@ export function CanvasScreen() {
 
 const styles = StyleSheet.create({
   content: { padding: 16, gap: 16 },
-  frame: { borderWidth: 1, borderColor: '#CCCCCC' },
-  canvas: { height: 320 },
+  canvas: { height: 320, borderWidth: 1, borderColor: '#CCCCCC', borderRadius: 8 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   button: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderRadius: 6 },
   filler: { height: 400 },
