@@ -85,7 +85,17 @@ jobs:
           api-level: 35
           arch: x86_64
           target: google_apis
-          script: yarn e2e --target android
+          script: |
+            yarn e2e --target android || (mkdir -p .e2e/artifacts; adb logcat -d > .e2e/artifacts/logcat.txt; adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' > .e2e/artifacts/focus.txt; exit 1)
+
+      - name: Upload e2e artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-android
+          path: .e2e/artifacts
+          if-no-files-found: warn
+          retention-days: 7
 
   ios:
     runs-on: macos-latest
@@ -117,4 +127,14 @@ jobs:
         env:
           E2E_TELEMETRY_DISABLED: '1'
           INKPAD_APP_PATH: example/ios/build/Build/Products/Release-iphonesimulator/InkpadExample.app
+          E2E_IOS_DEVICE: iPhone 17
         run: yarn e2e --target ios
+
+      - name: Upload e2e artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-ios
+          path: .e2e/artifacts
+          if-no-files-found: warn
+          retention-days: 7
