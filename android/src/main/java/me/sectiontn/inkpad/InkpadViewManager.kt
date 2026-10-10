@@ -1,31 +1,16 @@
 package me.sectiontn.inkpad
 
 import android.graphics.Color
-import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewManagerDelegate
 import com.facebook.react.uimanager.annotations.ReactProp
-import com.facebook.react.viewmanagers.InkpadViewManagerDelegate
 import com.facebook.react.viewmanagers.InkpadViewManagerInterface
 
 @ReactModule(name = InkpadViewManager.NAME)
 class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInterface<InkpadView> {
-  private val generated = InkpadViewManagerDelegate(this)
-
-  // Wraps the codegen delegate so border props reach the canvas; RN's base delegate drops them.
-  private val delegate = object : ViewManagerDelegate<InkpadView> {
-    @Suppress("ACCIDENTAL_OVERRIDE")
-    override fun setProperty(view: InkpadView, propName: String, value: Any?) {
-      if (!BorderProps.apply(view, propName, value)) generated.setProperty(view, propName, value)
-    }
-
-    @Suppress("ACCIDENTAL_OVERRIDE")
-    override fun receiveCommand(view: InkpadView, commandName: String, args: ReadableArray) {
-      generated.receiveCommand(view, commandName, args)
-    }
-  }
+  private val delegate = InkpadDelegate(this)
 
   override fun getDelegate(): ViewManagerDelegate<InkpadView> = delegate
 
