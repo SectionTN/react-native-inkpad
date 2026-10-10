@@ -99,8 +99,6 @@ jobs:
 
   ios:
     runs-on: macos-latest
-    env:
-      E2E_IOS_DEVICE: iPhone 17
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -125,15 +123,21 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
 
-      # A cold runner builds the XCTest runner too slowly for the e2e daemon's request timeout.
       - name: Boot the simulator and build the test runner
+        id: simulator
+        timeout-minutes: 30
         run: |
-          npx agent-device boot --platform ios --device "$E2E_IOS_DEVICE" --timeout 600000
-          npx agent-device prepare ios-runner --platform ios --device "$E2E_IOS_DEVICE" --timeout 900000
+          udid=$(xcrun simctl create inkpad-e2e "iPhone 17" "iOS$(xcrun --sdk iphonesimulator --show-sdk-version)")
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+          # agent-device's own cold boot builds its runner alongside and fails a 15 s simctl check.
+          xcrun simctl bootstatus "$udid" -b
+          # A cold runner build outlasts the e2e daemon's request timeout.
+          npx agent-device prepare ios-runner --platform ios --udid "$udid" --timeout 900000
           npx agent-device daemon stop
 
       - name: End-to-end tests
         env:
+          E2E_IOS_DEVICE: ${{ steps.simulator.outputs.udid }}
           E2E_TELEMETRY_DISABLED: '1'
           INKPAD_APP_PATH: example/ios/build/Build/Products/Release-iphonesimulator/InkpadExample.app
         run: yarn e2e --target ios
