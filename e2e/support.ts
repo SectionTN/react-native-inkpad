@@ -13,7 +13,10 @@ export function installBuildOnce(): void {
 }
 
 export async function boxOf(screen: Screen, testId: string) {
-  const box = await screen.getByTestId(testId).boundingBox();
+  const node = screen.getByTestId(testId);
+  // boundingBox() reads the current tree without waiting, unlike tap() and expect().
+  await node.waitFor({ state: 'visible' });
+  const box = await node.boundingBox();
   if (!box) throw new Error(`${testId} is not on screen`);
   return box;
 }
