@@ -1,6 +1,7 @@
 #import "INKPadView.h"
 
 #import <PencilKit/PencilKit.h>
+#import <React/RCTBorderDrawing.h>
 #import <React/RCTConversions.h>
 #import <react/renderer/components/InkpadViewSpec/ComponentDescriptors.h>
 #import <react/renderer/components/InkpadViewSpec/EventEmitters.h>
@@ -99,6 +100,40 @@ static NSString *INKInputName(UITouchType type)
   [self applyTool];
 
   [super updateProps:props oldProps:oldProps];
+}
+
+- (void)finalizeUpdates:(RNComponentViewUpdateMask)updateMask
+{
+  [super finalizeUpdates:updateMask];
+  [self clipCanvasToBorder];
+}
+
+// PencilKit clips ink to the canvas rectangle, so a rounded border needs the inner border edge as a mask.
+- (void)clipCanvasToBorder
+{
+  const auto metrics = _props->resolveBorderMetrics(_layoutMetrics);
+  const auto &radii = metrics.borderRadii;
+  RCTCornerRadii cornerRadii = {
+      radii.topLeft.horizontal,
+      radii.topLeft.vertical,
+      radii.topRight.horizontal,
+      radii.topRight.vertical,
+      radii.bottomLeft.horizontal,
+      radii.bottomLeft.vertical,
+      radii.bottomRight.horizontal,
+      radii.bottomRight.vertical,
+  };
+  if (RCTCornerRadiiAreEqualAndSymmetrical(cornerRadii) && cornerRadii.topLeftHorizontal <= 0) {
+    _canvas.layer.mask = nil;
+    return;
+  }
+  RCTCornerInsets insets = RCTGetCornerInsets(cornerRadii, RCTUIEdgeInsetsFromEdgeInsets(metrics.borderWidths));
+  CGRect paddingBox = [self convertRect:RCTCGRectFromRect(_layoutMetrics.getPaddingFrame()) toView:_canvas];
+  CGPathRef path = RCTPathCreateWithRoundedRect(paddingBox, insets, NULL, NO);
+  CAShapeLayer *mask = [CAShapeLayer layer];
+  mask.path = path;
+  CGPathRelease(path);
+  _canvas.layer.mask = mask;
 }
 
 - (void)applyTool
