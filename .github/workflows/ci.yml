@@ -99,6 +99,8 @@ jobs:
 
   ios:
     runs-on: macos-latest
+    env:
+      E2E_IOS_DEVICE: iPhone 17
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -123,11 +125,17 @@ jobs:
           -destination 'generic/platform=iOS Simulator'
           -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
 
+      # A cold runner builds the XCTest runner too slowly for the e2e daemon's request timeout.
+      - name: Boot the simulator and build the test runner
+        run: |
+          npx agent-device boot --platform ios --device "$E2E_IOS_DEVICE" --timeout 600000
+          npx agent-device prepare ios-runner --platform ios --device "$E2E_IOS_DEVICE" --timeout 900000
+          npx agent-device daemon stop
+
       - name: End-to-end tests
         env:
           E2E_TELEMETRY_DISABLED: '1'
           INKPAD_APP_PATH: example/ios/build/Build/Products/Release-iphonesimulator/InkpadExample.app
-          E2E_IOS_DEVICE: iPhone 17
         run: yarn e2e --target ios
 
       - name: Upload e2e artifacts
