@@ -1,8 +1,16 @@
-# react-native-inkpad
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-banner-dark.png" />
+  <img alt="React Native Inkpad, a native ink canvas for React Native" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-banner-light.png" />
+</picture>
 
 A native ink canvas for React Native. It draws with androidx.ink on Android and PencilKit on iOS, so strokes get each platform's own latency, pressure and palm rejection. There is no WebView.
 
 The package is at 0.x, and the API can still change before 1.0. Web support lands in 0.2.
+
+<picture>
+  <source type="image/webp" srcset="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.webp" />
+  <img alt="The example app on iOS and Android side by side: the same drawing in pen, marker and highlighter, the export sheet, and a signature" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.gif" />
+</picture>
 
 ## Install
 
@@ -10,7 +18,7 @@ The package is at 0.x, and the API can still change before 1.0. Web support land
 npm install react-native-inkpad
 ```
 
-You need React Native 0.80 or newer with the New Architecture, iOS 15.1 or newer and Android minSdk 24. In Expo, use a development build. The library does not run in Expo Go.
+You need React Native 0.80 or newer with the New Architecture, iOS 15.1 or newer and Android minSdk 24. In Expo, use a development build. The library doesn't run in Expo Go.
 
 ## Usage
 
@@ -64,9 +72,9 @@ The eraser removes whole strokes. Sizes are in dp on Android and points on iOS. 
 | `toImage({ format, quality, scale, trim, background, base64 })` | `Promise<{ uri, width, height, base64? }>` |
 | `toSVG({ trim, background })` | `Promise<string>` |
 
-Exported images land in the app's cache directory. Move or delete them when you are done.
+Exported images land in the app's cache directory. Move or delete them when you're done.
 
-A stroke document is plain JSON: a version, the canvas size, and a list of strokes. Each stroke has a brush and a flat list of points, six numbers per point (x, y, time, pressure, tilt, orientation, with -1 for values the device did not report). You can store it and load it back later with `setStrokes`.
+A stroke document is plain JSON: a version, the canvas size, and a list of strokes. Each stroke has a brush and a flat list of points, six numbers per point (x, y, time, pressure, tilt, orientation, with -1 for values the device didn't report). You can store it and load it back later with `setStrokes`.
 
 Failed calls reject with an `InkpadError` whose `code` is one of `E_NOT_MOUNTED`, `E_TIMEOUT`, `E_INVALID_DOCUMENT`, `E_UNSUPPORTED_VERSION`, `E_EMPTY`, `E_EXPORT_FAILED` or `E_NATIVE`.
 
