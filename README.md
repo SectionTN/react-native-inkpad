@@ -4,7 +4,7 @@
 </picture>
 
 [![npm](https://img.shields.io/npm/v/react-native-inkpad?style=flat-square)](https://www.npmjs.com/package/react-native-inkpad)
-[![license](https://img.shields.io/npm/l/react-native-inkpad?style=flat-square)](https://github.com/SectionTN/react-native-inkpad/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/react-native-inkpad?style=flat-square&label=license)](https://github.com/SectionTN/react-native-inkpad/blob/main/LICENSE)
 [![Context7](https://img.shields.io/badge/Context7-docs-blue?style=flat-square)](https://context7.com/sectiontn/react-native-inkpad)
 
 A native ink canvas for React Native. It draws with androidx.ink on Android and PencilKit on iOS.
