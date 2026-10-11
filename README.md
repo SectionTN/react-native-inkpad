@@ -3,22 +3,37 @@
   <img alt="React Native Inkpad, a native ink canvas for React Native" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-banner-light.png" />
 </picture>
 
-A native ink canvas for React Native. It draws with androidx.ink on Android and PencilKit on iOS, so strokes get each platform's own latency, pressure and palm rejection. There is no WebView.
+[![npm](https://img.shields.io/npm/v/react-native-inkpad?style=flat-square)](https://www.npmjs.com/package/react-native-inkpad)
+[![license](https://img.shields.io/npm/l/react-native-inkpad?style=flat-square)](https://github.com/SectionTN/react-native-inkpad/blob/main/LICENSE)
 
-The package is at 0.x, and the API can still change before 1.0. Web support lands in 0.2.
+A native ink canvas for React Native. It draws with androidx.ink on Android and PencilKit on iOS.
 
 <picture>
   <source type="image/webp" srcset="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.webp" />
   <img alt="The example app on iOS and Android side by side: the same drawing in pen, marker and highlighter, the export sheet, and a signature" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.gif" />
 </picture>
 
-## Install
+## Features
+
+- Pen, marker and highlighter brushes, plus an eraser
+- Undo, redo and clear
+- Export to PNG, JPEG or SVG, optionally trimmed to the drawing
+- Save a drawing as JSON and load it back
+- [Drop-in replacement](#migrating-from-react-native-signature-canvas) for react-native-signature-canvas
+
+## Installation
 
 ```sh
 npm install react-native-inkpad
+cd ios && pod install
 ```
 
-You need React Native 0.80 or newer with the New Architecture, iOS 15.1 or newer and Android minSdk 24. In Expo, use a development build. The library doesn't run in Expo Go.
+Requirements:
+
+- React Native 0.80+ with the New Architecture
+- iOS 15.1+
+- Android 7.0+ (API 24)
+- Expo: a development build (Expo Go isn't supported)
 
 ## Usage
 
@@ -49,57 +64,73 @@ export function SignatureField() {
 }
 ```
 
-## Props
+## API
 
-| Prop | Type | Default |
-| --- | --- | --- |
-| `brush` | `{ type?: 'pen' \| 'marker' \| 'highlighter'; color?: ColorValue; size?: number }` | pen, black, 3 |
-| `tool` | `'draw' \| 'erase'` | `'draw'` |
-| `editable` | `boolean` | `true` |
-| `background` | `{ color?: ColorValue }` | transparent |
-| `onStrokeStart`, `onStrokeEnd` | `() => void` | |
-| `onChange` | `({ strokeCount, canUndo, canRedo }) => void` | |
+### Props
 
-The eraser removes whole strokes. Sizes are in dp on Android and points on iOS. `style` takes the usual view styles, borders and rounded corners included, and strokes stay inside the border.
+`InkCanvas` takes the usual `View` props, plus:
 
-## Ref methods
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `brush` | `{ type, color, size }` | black pen, size 3 | Brush for new strokes. `type` is `'pen'`, `'marker'` or `'highlighter'`. |
+| `tool` | `'draw' \| 'erase'` | `'draw'` | The eraser removes whole strokes. |
+| `editable` | `boolean` | `true` | Set to `false` to turn drawing off. |
+| `background` | `{ color }` | transparent | Canvas color. |
+| `onStrokeStart` | `() => void` | | Called when a stroke starts. |
+| `onStrokeEnd` | `() => void` | | Called when a stroke ends. |
+| `onChange` | `(state) => void` | | Called after every change with `{ strokeCount, canUndo, canRedo }`. |
 
-| Method | Returns |
+### Methods
+
+| Method | Description |
 | --- | --- |
-| `undo()`, `redo()`, `clear()` | `void` |
-| `getStrokes()` | `Promise<InkDocument>` |
-| `setStrokes(doc)` | `Promise<void>` |
-| `toImage({ format, quality, scale, trim, background, base64 })` | `Promise<{ uri, width, height, base64? }>` |
-| `toSVG({ trim, background })` | `Promise<string>` |
+| `undo()`, `redo()` | Step back or forward through the history. |
+| `clear()` | Remove every stroke. |
+| `getStrokes()` | Get the strokes as a plain object you can store as JSON. |
+| `setStrokes(doc)` | Replace the drawing with strokes from `getStrokes()`. |
+| `toImage({ format, quality, scale, trim, background, base64 })` | Export a PNG or JPEG. Resolves to `{ uri, width, height, base64? }`. |
+| `toSVG({ trim, background })` | Export an SVG string. |
 
-Exported images land in the app's cache directory. Move or delete them when you're done.
+### Errors
 
-A stroke document is plain JSON: a version, the canvas size, and a list of strokes. Each stroke has a brush and a flat list of points, six numbers per point (x, y, time, pressure, tilt, orientation, with -1 for values the device didn't report). You can store it and load it back later with `setStrokes`.
+Failed calls throw an `InkpadError`. Its `code` is one of:
 
-Failed calls reject with an `InkpadError` whose `code` is one of `E_NOT_MOUNTED`, `E_TIMEOUT`, `E_INVALID_DOCUMENT`, `E_UNSUPPORTED_VERSION`, `E_EMPTY`, `E_EXPORT_FAILED` or `E_NATIVE`.
+| Code | Meaning |
+| --- | --- |
+| `E_NOT_MOUNTED` | The canvas isn't mounted, or it unmounted before the call finished. |
+| `E_TIMEOUT` | The native view didn't answer within 15 seconds. |
+| `E_INVALID_DOCUMENT` | `setStrokes()` got a malformed document. |
+| `E_UNSUPPORTED_VERSION` | The document was saved by a newer version of the library. |
+| `E_EMPTY` | `trim` was set but the canvas is empty. |
+| `E_EXPORT_FAILED` | The image couldn't be created or saved. |
+| `E_NATIVE` | Any other native error. |
 
-## Coming from react-native-signature-canvas
+## Migrating from react-native-signature-canvas
 
-Change the import and keep the rest of your screen:
+Change the import:
 
 ```diff
 - import SignatureCanvas from 'react-native-signature-canvas';
 + import SignatureCanvas from 'react-native-inkpad/signature-canvas';
 ```
 
-It takes the same props, callbacks and ref methods, and `onOK` still gets a `data:` URL. Signatures you saved with `getData` load with `fromData`. A few things differ:
+Props, callbacks and ref methods keep working, and `fromData` loads signatures you saved with `getData`. A few things change:
 
-- Props that only made sense in a WebView, like `customHtml` and `webviewProps`, are ignored, with one warning in development. From `webStyle`, only a rule that hides the footer still works.
-- The footer looks different: Clear and Confirm buttons with icons, and the description between them. `clearText`, `confirmText` and `descriptionText` still set the words. For your own footer, pass `renderFooter`. It gets the same methods as the ref, and returning `null` hides the footer.
-- `maxWidth` sets the pen size. The pen thins with speed on its own, so `minWidth`, `dotSize` and `velocityFilterWeight` are ignored.
-- `bgSrc`, `dataURL` and `setDataURL` arrive in 0.3.
-- The eraser removes whole strokes instead of pixels.
+- Props that don't apply anymore, like `customHtml` or `minWidth`, are ignored. A dev warning lists them.
+- The footer has a new look. Pass `renderFooter` to draw your own.
+- The eraser removes whole strokes, not pixels.
+- `bgSrc`, `dataURL` and `setDataURL` need background images, which come in 0.3.
 
-## Platform notes
+## Roadmap
 
-Strokes look a little different on Android and iOS, because each platform draws with its own engine. The canvas keeps ink colors exact in dark mode, even when Android forces dark colors onto the app.
+- [x] 0.1: Android and iOS
+- [ ] 0.2: Web
+- [ ] 0.3: Background images, stylus-only mode and `onError`
+- [ ] 1.0: First stable release
 
-On Android, the pen follows a stylus's pressure. Fingers and mice rarely report pressure, so their pen strokes thin out as they speed up, the way react-native-signature-canvas draws.
+## Contributing
+
+See the [contributing guide](https://github.com/SectionTN/react-native-inkpad/blob/main/CONTRIBUTING.md). Questions and ideas go to [Discussions](https://github.com/SectionTN/react-native-inkpad/discussions).
 
 ## License
 
