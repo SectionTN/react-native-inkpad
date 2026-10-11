@@ -3,6 +3,7 @@ import { Image, Pressable, processColor, StyleSheet, Text, View } from 'react-na
 import { argbToHex } from '../color';
 import { InkCanvas } from '../InkCanvas';
 import type { InkCanvasRef } from '../types';
+import { CHECK_ICON, TRASH_ICON } from './icons';
 import { asciiToBase64, dataUrl, exportFormat, footerHidden, unsupportedProps } from './mapProps';
 import { documentToPointGroups, pointGroupsToDocument } from './signaturePadData';
 import type { SignatureCanvasProps, SignatureViewRef } from './types';
@@ -142,33 +143,70 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
           />
         ) : null}
       </View>
-      {footerHidden(props.webStyle) ? null : (
-        <View style={styles.footer}>
-          <Text style={styles.description}>{props.descriptionText ?? 'Sign above'}</Text>
-          <View style={styles.buttons}>
-            <Pressable testID="inkpad-clear" onPress={actions.clearSignature} style={styles.button}>
-              <Text>{props.clearText ?? 'Clear'}</Text>
-            </Pressable>
-            <Pressable
-              testID="inkpad-confirm"
-              onPress={actions.readSignature}
-              style={styles.button}
-            >
-              <Text>{props.confirmText ?? 'Confirm'}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
+      {props.renderFooter
+        ? props.renderFooter(actions)
+        : !footerHidden(props.webStyle) && (
+            <View style={styles.footer}>
+              <Pressable
+                testID="inkpad-clear"
+                accessibilityRole="button"
+                onPress={actions.clearSignature}
+                style={({ pressed }) => [styles.button, styles.clear, pressed && styles.pressed]}
+              >
+                <Image source={{ uri: TRASH_ICON }} style={[styles.icon, styles.clearIcon]} />
+                <Text style={[styles.label, styles.clearLabel]}>{props.clearText ?? 'Clear'}</Text>
+              </Pressable>
+              <Text style={styles.description} numberOfLines={1}>
+                {props.descriptionText ?? 'Sign above'}
+              </Text>
+              <Pressable
+                testID="inkpad-confirm"
+                accessibilityRole="button"
+                onPress={actions.readSignature}
+                style={({ pressed }) => [styles.button, styles.confirm, pressed && styles.pressed]}
+              >
+                <Image source={{ uri: CHECK_ICON }} style={[styles.icon, styles.confirmIcon]} />
+                <Text style={[styles.label, styles.confirmLabel]}>
+                  {props.confirmText ?? 'Confirm'}
+                </Text>
+              </Pressable>
+            </View>
+          )}
     </View>
   );
 }
 
+const CLEAR_INK = '#1C1C1E';
+
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: '#FFFFFF' },
   pad: { flex: 1, backgroundColor: '#FFFFFF' },
   overlay: { pointerEvents: 'none' },
-  footer: { padding: 12, gap: 8, borderTopWidth: 1, borderColor: '#DDDDDD' },
-  description: { textAlign: 'center', color: '#666666' },
-  buttons: { flexDirection: 'row', justifyContent: 'space-between' },
-  button: { paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderRadius: 6 },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 30,
+    paddingLeft: 8,
+    paddingRight: 10,
+    borderRadius: 8,
+  },
+  clear: { backgroundColor: '#F2F2F7' },
+  confirm: { backgroundColor: '#2F6FED' },
+  pressed: { opacity: 0.7 },
+  icon: { width: 14, height: 14 },
+  clearIcon: { tintColor: CLEAR_INK },
+  confirmIcon: { tintColor: '#FFFFFF' },
+  label: { fontSize: 14, fontWeight: '600' },
+  clearLabel: { color: CLEAR_INK },
+  confirmLabel: { color: '#FFFFFF' },
+  description: { flexShrink: 1, color: '#8E8E93', fontSize: 13, textAlign: 'center' },
 });

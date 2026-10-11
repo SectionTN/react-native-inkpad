@@ -82,6 +82,7 @@ Change the import and keep the rest of your screen:
 It takes the same props, callbacks and ref methods, and `onOK` still gets a `data:` URL. Signatures you saved with `getData` load with `fromData`. A few things differ:
 
 - Props that only made sense in a WebView, like `customHtml` and `webviewProps`, are ignored, with one warning in development. From `webStyle`, only a rule that hides the footer still works.
+- The footer looks different: Clear and Confirm buttons with icons, and the description between them. `clearText`, `confirmText` and `descriptionText` still set the words. For your own footer, pass `renderFooter`. It gets the same methods as the ref, and returning `null` hides the footer.
 - `maxWidth` sets the pen size. The pen thins with speed on its own, so `minWidth`, `dotSize` and `velocityFilterWeight` are ignored.
 - `bgSrc`, `dataURL` and `setDataURL` arrive in 0.3.
 - The eraser removes whole strokes instead of pixels.

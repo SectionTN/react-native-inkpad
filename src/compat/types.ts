@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import type { PointGroup } from './signaturePadData';
 
@@ -40,6 +40,8 @@ export type SignatureCanvasProps = {
   clearText?: string;
   confirmText?: string;
   webStyle?: string;
+  /** Replaces the footer. It gets the same methods as the ref; return null to hide the footer. */
+  renderFooter?: (actions: SignatureViewRef) => ReactNode;
   onOK?: (signature: string) => void;
   onEmpty?: () => void;
   onClear?: () => void;
