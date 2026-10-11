@@ -256,21 +256,45 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   }
 
   internal fun getStrokes(requestId: Int) {
-    val doc = Doc(width / density, height / density, strokes.map(InkConverter::fromInk))
-    emitResult(requestId, DocumentJson.write(doc))
+    val snapshot = strokes.toList()
+    val canvasWidth = width / density
+    val canvasHeight = height / density
+    // A long drawing serializes to a large JSON string, so it belongs off the UI thread like the export.
+    WORKER.execute {
+      val result = runCatching {
+        DocumentJson.write(Doc(canvasWidth, canvasHeight, snapshot.map(InkConverter::fromInk)))
+      }
+      post {
+        result.fold(
+          onSuccess = { emitResult(requestId, it) },
+          onFailure = { error ->
+            emitError(requestId, ErrorCodes.NATIVE, error.message ?: "could not read the strokes")
+          },
+        )
+      }
+    }
   }
 
   internal fun setStrokes(requestId: Int, json: String?) {
-    try {
-      val metrics = resources.displayMetrics
-      val unitLengthCm = InkConverter.strokeUnitLengthCm(density, metrics.xdpi, metrics.ydpi)
-      val next = DocumentJson.parse(json ?: "").strokes.map { InkConverter.toInk(it, unitLengthCm) }
-      replaceAll(next)
-      emitResult(requestId, "")
-    } catch (e: InkpadException) {
-      emitError(requestId, e.code, e.message ?: "")
-    } catch (e: IllegalArgumentException) {
-      emitError(requestId, ErrorCodes.NATIVE, e.message ?: "Ink rejected the strokes")
+    val metrics = resources.displayMetrics
+    val unitLengthCm = InkConverter.strokeUnitLengthCm(density, metrics.xdpi, metrics.ydpi)
+    // Loading a saved drawing builds an ink stroke per point, which is as heavy as reading one back.
+    WORKER.execute {
+      val result = runCatching {
+        DocumentJson.parse(json ?: "").strokes.map { InkConverter.toInk(it, unitLengthCm) }
+      }
+      post {
+        result.fold(
+          onSuccess = { next ->
+            replaceAll(next)
+            emitResult(requestId, "")
+          },
+          onFailure = { error ->
+            val code = if (error is InkpadException) error.code else ErrorCodes.NATIVE
+            emitError(requestId, code, error.message ?: "Ink rejected the strokes")
+          },
+        )
+      }
     }
   }
 
@@ -286,7 +310,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     val color = canvasColor
     val load = imageLoad
     val fit = backgroundFit
-    EXPORTER.execute {
+    WORKER.execute {
       val image = runCatching { load?.get() }.getOrNull()
       val result = runCatching {
         ImageExporter.export(reactContext, snapshot, canvasWidth, canvasHeight, color, image, fit, options)
@@ -349,7 +373,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
   companion object {
     private const val ERASER_RADIUS = 10f
-    private val EXPORTER = Executors.newSingleThreadExecutor()
+
+    // Commands that read or build the whole document share one thread, so they never touch ink at once.
+    private val WORKER = Executors.newSingleThreadExecutor()
     private val LOADER = Executors.newCachedThreadPool()
   }
 }

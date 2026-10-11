@@ -18,6 +18,9 @@
 
 using namespace facebook::react;
 
+// Brushes outlive the strokes they belong to, because undo can bring those strokes back.
+static const NSUInteger INKBrushLimit = 1000;
+
 @interface INKPadView () <RCTInkpadViewViewProtocol, PKCanvasViewDelegate>
 @end
 
@@ -48,6 +51,7 @@ static NSString *INKInputName(UITouchType type)
   CGFloat _brushSize;
   BOOL _erasing;
   NSMutableDictionary<NSDate *, INKBrushInfo *> *_brushes;
+  NSMutableArray<NSDate *> *_brushOrder;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -71,6 +75,7 @@ static NSString *INKInputName(UITouchType type)
     _brushColor = UIColor.blackColor;
     _brushSize = 3;
     _brushes = [NSMutableDictionary new];
+    _brushOrder = [NSMutableArray new];
     _afterImageLoad = [NSMutableArray new];
 
     _container = [[UIView alloc] initWithFrame:frame];
@@ -245,22 +250,40 @@ static NSString *INKInputName(UITouchType type)
 
 - (void)getStrokes:(NSInteger)requestId
 {
-  NSString *json = [INKStrokeCodec encodeDrawing:_canvas.drawing size:self.bounds.size brushes:_brushes];
-  [self emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+  PKDrawing *drawing = _canvas.drawing;
+  NSDictionary<NSDate *, INKBrushInfo *> *brushes = [_brushes copy];
+  CGSize size = self.bounds.size;
+  __weak INKPadView *weakSelf = self;
+  // A long drawing serializes to a large JSON string, and exporting already renders off the main thread.
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    NSString *json = [INKStrokeCodec encodeDrawing:drawing size:size brushes:brushes];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [weakSelf emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+    });
+  });
 }
 
 - (void)setStrokes:(NSInteger)requestId json:(NSString *)json
 {
-  NSString *errorCode = nil;
-  NSString *message = nil;
-  INKDecodedDrawing *decoded = [INKStrokeCodec decode:json errorCode:&errorCode message:&message];
-  if (decoded == nil) {
-    [self emitResult:requestId ok:NO payload:@"" errorCode:errorCode message:message];
-    return;
-  }
-  [_brushes addEntriesFromDictionary:decoded.brushes];
-  [self replaceDrawing:decoded.drawing];
-  [self emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+  __weak INKPadView *weakSelf = self;
+  // Loading a saved drawing builds a stroke path per point, which is as heavy as encoding one.
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    NSString *errorCode = nil;
+    NSString *message = nil;
+    INKDecodedDrawing *decoded = [INKStrokeCodec decode:json errorCode:&errorCode message:&message];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      INKPadView *view = weakSelf;
+      if (decoded == nil) {
+        [view emitResult:requestId ok:NO payload:@"" errorCode:errorCode message:message];
+        return;
+      }
+      [decoded.brushes enumerateKeysAndObjectsUsingBlock:^(NSDate *created, INKBrushInfo *info, BOOL *stop) {
+        [view rememberBrush:info forDate:created];
+      }];
+      [view replaceDrawing:decoded.drawing];
+      [view emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+    });
+  });
 }
 
 // A command can arrive before the props JS rendered with it, so the export brings the image it expects.
@@ -392,7 +415,21 @@ static NSString *INKInputName(UITouchType type)
     info.hasPressure = stylus;
     info.hasTilt = stylus;
     info.hasOrientation = stylus;
-    _brushes[created] = info;
+    [self rememberBrush:info forDate:created];
+  }
+}
+
+// Undo can bring back any stroke that is still in the drawing, so the brushes stay in a bounded window
+// instead of growing for the whole session.
+- (void)rememberBrush:(INKBrushInfo *)info forDate:(NSDate *)date
+{
+  if (![_brushOrder.lastObject isEqualToDate:date]) {
+    [_brushOrder addObject:date];
+  }
+  _brushes[date] = info;
+  while (_brushOrder.count > INKBrushLimit) {
+    [_brushes removeObjectForKey:_brushOrder.firstObject];
+    [_brushOrder removeObjectAtIndex:0];
   }
 }
 
