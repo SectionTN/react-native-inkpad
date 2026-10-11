@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { beforeEach } from '@e2e-dev/mobile';
-import type { Screen } from 'e2e';
+import type { Locator, Screen } from 'e2e';
 
 let installed = false;
 
@@ -24,6 +24,14 @@ export async function boxOf(screen: Screen, testId: string) {
   const box = await node.boundingBox();
   if (!box) throw new Error(`${testId} is not on screen`);
   return box;
+}
+
+// Material 3 controls on Android wrap a role node that covers them, so a plain tap() finds no point it may press.
+export async function tapCenter(node: Locator): Promise<void> {
+  await node.waitFor({ state: 'visible' });
+  const box = await node.boundingBox();
+  if (!box) throw new Error('tap target is not on screen');
+  await node.tap({ position: { x: box.width / 2, y: box.height / 2 } });
 }
 
 export async function drawAcross(screen: Screen, testId: string): Promise<void> {

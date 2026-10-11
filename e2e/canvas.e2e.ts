@@ -1,6 +1,6 @@
 import { test } from '@e2e-dev/mobile';
 import { expect } from 'e2e';
-import { boxOf, drawAcross, installBuildOnce, SAMPLE_STROKES } from './support';
+import { boxOf, drawAcross, installBuildOnce, SAMPLE_STROKES, tapCenter } from './support';
 
 installBuildOnce();
 
@@ -8,18 +8,18 @@ test('draws, undoes, redoes and clears', async ({ app, screen }) => {
   await app.restart();
   await drawAcross(screen, 'canvas');
   await expect(screen.getByTestId('status')).toContainText('1 stroke');
-  await screen.getByTestId('undo').tap();
+  await tapCenter(screen.getByTestId('undo'));
   await expect(screen.getByTestId('status')).toContainText('0 strokes');
-  await screen.getByTestId('redo').tap();
+  await tapCenter(screen.getByTestId('redo'));
   await expect(screen.getByTestId('status')).toContainText('1 stroke');
-  await screen.getByTestId('clear').tap();
+  await tapCenter(screen.getByTestId('clear'));
   await expect(screen.getByTestId('status')).toContainText('0 strokes');
 });
 
 test('erases a stroke the eraser crosses', async ({ app, screen }) => {
   await app.restart();
   await drawAcross(screen, 'canvas');
-  await screen.getByTestId('eraser').tap();
+  await tapCenter(screen.getByTestId('eraser'));
   const box = await boxOf(screen, 'canvas');
   const x = box.x + box.width / 2;
   await screen.swipe({
@@ -32,14 +32,14 @@ test('erases a stroke the eraser crosses', async ({ app, screen }) => {
 test('loads the sample, exports it and loads it back', async ({ app, screen }) => {
   const strokes = `${SAMPLE_STROKES} strokes`;
   await app.restart();
-  await screen.getByTestId('load-sample').tap();
+  await tapCenter(screen.getByTestId('load-sample'));
   await expect(screen.getByTestId('status')).toContainText(strokes);
-  await screen.getByLabel('Export').tap();
+  await tapCenter(screen.getByLabel('Export'));
   await expect(screen.getByTestId('export-status')).toContainText('PNG · ');
-  await screen.getByText('SVG').tap();
+  await tapCenter(screen.getByText('SVG'));
   await expect(screen.getByTestId('export-status')).toContainText('SVG · ');
-  await screen.getByText('JSON').tap();
+  await tapCenter(screen.getByText('JSON'));
   await expect(screen.getByTestId('export-status')).toContainText(strokes);
-  await screen.getByTestId('reload').tap();
+  await tapCenter(screen.getByTestId('reload'));
   await expect(screen.getByTestId('export-status')).toHaveText(`Reloaded ${strokes}`);
 });
