@@ -1,120 +1,84 @@
 # Contributing
 
-Contributions are always welcome, no matter how large or small!
+Bug reports and pull requests are welcome. Read the [code of conduct](./CODE_OF_CONDUCT.md) before you take part.
 
-We want this community to be friendly and respectful to each other. Please follow it in all your interactions with the project. Before contributing, please read the [code of conduct](./CODE_OF_CONDUCT.md).
+## Set up the repo
 
-## Development workflow
-
-This project is a monorepo managed using [Yarn workspaces](https://yarnpkg.com/features/workspaces). It contains the following packages:
-
-- The library package in the root directory.
-- An example app in the `example/` directory.
-
-To get started with the project, make sure you have the correct version of [Node.js](https://nodejs.org/) installed. See the [`.nvmrc`](./.nvmrc) file for the version used in this project.
-
-Run `yarn` in the root directory to install the required dependencies for each package:
+The repo is a Yarn workspace: the library sits in the root, and an Expo example app sits in `example/`. Use the Node version in [`.nvmrc`](./.nvmrc), then install from the root:
 
 ```sh
 yarn
 ```
 
-> Since the project relies on Yarn workspaces, you cannot use [`npm`](https://github.com/npm/cli) for development without manually migrating.
+Use Yarn for everything here. The workspace depends on it, and npm won't install it without changes.
 
-The [example app](/example/) demonstrates usage of the library. You need to run it to test any changes you make.
+## Run the example
 
-It is configured to use the local version of the library, so any changes you make to the library's source code will be reflected in the example app. Changes to the library's JavaScript code will be reflected in the example app without a rebuild, but native code changes will require a rebuild of the example app.
-
-If you want to use Android Studio or Xcode to edit the native code, you can open the `example/android` or `example/ios` directories respectively in those editors. To edit the Objective-C or Swift files, open `example/ios/InkpadExample.xcworkspace` in Xcode and find the source files at `Pods > Development Pods > react-native-inkpad`.
-
-To edit the Java or Kotlin files, open `example/android` in Android studio and find the source files at `react-native-inkpad` under `Android`.
-
-You can use various commands from the root directory to work with the project.
-
-To start the packager:
+The example app runs the library from source. JavaScript changes reload right away, and native changes need a rebuild.
 
 ```sh
 yarn example start
-```
-
-To run the example app on Android:
-
-```sh
 yarn example android
-```
-
-To run the example app on iOS:
-
-```sh
 yarn example ios
 ```
 
-To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
+`start` runs Metro. `android` and `ios` build the app and launch it, and the first run creates `example/android` and `example/ios` with `expo prebuild`.
+
+To edit the native code in an IDE, open `example/android` in Android Studio, where the Kotlin sources are in the `react-native-inkpad` module. On iOS, open `example/ios/InkpadExample.xcworkspace` in Xcode and find the Objective-C++ sources under Pods > Development Pods > react-native-inkpad.
+
+The library needs the New Architecture. The Metro log line that starts with `Running "InkpadExample"` shows `"fabric":true` when it's on.
+
+## Check your change
 
 ```sh
-Running "InkpadExample" with {"fabric":true,"initialProps":{"concurrentRoot":true},"rootTag":1}
-```
-
-Note the `"fabric":true` and `"concurrentRoot":true` properties.
-
-To run the example app on Web:
-
-```sh
-yarn example web
-```
-
-Make sure your code passes TypeScript:
-
-```sh
+yarn lint
 yarn typecheck
+yarn test
 ```
 
+`yarn lint` runs Biome, and `yarn format` applies its fixes. `yarn test` runs the Vitest unit tests.
 
-### Commit message convention
-
-We follow the [conventional commits specification](https://www.conventionalcommits.org/en) for our commit messages:
-
-- `fix`: bug fixes, e.g. fix crash due to deprecated method.
-- `feat`: new features, e.g. add new method to the module.
-- `refactor`: code refactor, e.g. migrate from class components to hooks.
-- `docs`: changes into documentation, e.g. add usage example for the module.
-- `test`: adding or updating tests, e.g. add integration tests using detox.
-- `chore`: tooling changes, e.g. change CI config.
-
-Our pre-commit hooks verify that your commit message matches this format when committing.
-
-
-### Publishing to npm
-
-We use [release-it](https://github.com/release-it/release-it) to make it easier to publish new versions. It handles common tasks like bumping version based on semver, creating tags and releases etc.
-
-To publish new versions, run the following:
+The Kotlin unit tests run from the prebuilt example:
 
 ```sh
-yarn release
+cd example/android
+./gradlew :react-native-inkpad:testDebugUnitTest
 ```
 
+## Run the end-to-end tests
 
-### Scripts
+The tests in `e2e/` install a release build of the example on a running emulator or simulator. `INKPAD_APP_PATH` points them at that build.
 
-The `package.json` file contains various scripts for common tasks:
+On Android, the build script targets arm64 emulators, like the ones on Apple silicon Macs:
 
-- `yarn`: setup project by installing dependencies.
-- `yarn typecheck`: type-check files with TypeScript.
-    - `yarn example start`: start the Metro server for the example app.
-- `yarn example android`: run the example app on Android.
-- `yarn example ios`: run the example app on iOS.
-  - `yarn example web`: run the example app on Web.
-- `yarn example build:web`: build the example app for Web.
-  
-### Sending a pull request
+```sh
+yarn e2e:android:build
+INKPAD_APP_PATH=example/android/app/build/outputs/apk/release/app-release.apk yarn e2e --target android
+```
 
-> **Working on your first pull request?** You can learn how from this _free_ series: [How to Contribute to an Open Source Project on GitHub](https://app.egghead.io/playlists/how-to-contribute-to-an-open-source-project-on-github).
+On iOS, build the release app for the simulator first:
 
-When you're sending a pull request:
+```sh
+cd example
+npx expo prebuild --platform ios
+cd ios
+xcodebuild -workspace InkpadExample.xcworkspace -scheme InkpadExample -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+cd ../..
+INKPAD_APP_PATH=example/ios/build/Build/Products/Release-iphonesimulator/InkpadExample.app yarn e2e --target ios
+```
 
-- Prefer small pull requests focused on one change.
-- Verify that linters and tests are passing.
-- Review the documentation to make sure it looks good.
-- Follow the pull request template when opening a pull request.
-- For pull requests that change the API or implementation, discuss with maintainers first by opening an issue.
+The tests use the booted simulator, or the one you name in `E2E_IOS_DEVICE`. When you're done, stop the device daemon with `npx agent-device daemon stop`.
+
+CI runs all of these, plus a package build, on every push and pull request to `main`.
+
+## Commit messages
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/en): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:` and so on. Lefthook runs Biome on your staged files and the type check before each commit, and commitlint checks the message. If the hooks don't run, install them with `yarn lefthook install`.
+
+## Open a pull request
+
+Keep each pull request to one change, and make sure the checks pass. If you change the public API, update the README in the same pull request. For API changes and bigger rewrites, open an issue first to agree on the approach before you write code.
+
+## Releases
+
+The maintainer runs `yarn release`. release-it bumps the version, tags it `v<version>` and creates a GitHub release with notes from the commit messages. The tag starts the Publish workflow, which builds the package and publishes it to npm with provenance.
