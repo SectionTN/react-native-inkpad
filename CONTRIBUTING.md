@@ -81,4 +81,4 @@ Keep each pull request to one change, and make sure the checks pass. If you chan
 
 ## Releases
 
-The maintainer runs `yarn release`. release-it bumps the version, tags it `v<version>` and creates a GitHub release with notes from the commit messages. The tag starts the Publish workflow, which builds the package and publishes it to npm with provenance.
+The maintainer runs `yarn release`. release-it bumps the version, tags it `v<version>` and creates a GitHub release with notes from the commit messages. The tag starts the Publish workflow, which builds the package and stages it on npm with provenance. The version goes live once the maintainer approves it under Staged Packages on npmjs.com, with 2FA.

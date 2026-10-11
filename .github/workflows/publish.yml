@@ -27,7 +27,11 @@ jobs:
       - name: Build
         run: yarn prepare
 
-      - name: Publish with provenance
-        run: npm publish --provenance --access public
+      # Staged publishing needs npm 11.15 or newer, and Node 24.13 ships 11.6.
+      - name: Update npm
+        run: npm install -g npm@11.19.1
+
+      - name: Stage with provenance
+        run: npm stage publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
