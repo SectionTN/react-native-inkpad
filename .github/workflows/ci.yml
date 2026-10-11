@@ -85,6 +85,8 @@ jobs:
           api-level: 35
           arch: x86_64
           target: google_apis
+          # The default 320x640 dp screen is smaller than any current phone and hides the Sign screen's footer.
+          profile: pixel_6
           script: |
             yarn e2e --target android || (mkdir -p .e2e/artifacts; adb logcat -d > .e2e/artifacts/logcat.txt; adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' > .e2e/artifacts/focus.txt; exit 1)
 
