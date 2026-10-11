@@ -135,3 +135,7 @@ See the [contributing guide](https://github.com/SectionTN/react-native-inkpad/bl
 ## License
 
 MIT
+
+---
+
+<p align="center">Made by <a href="https://github.com/SectionTN">SectionTN</a></p>
