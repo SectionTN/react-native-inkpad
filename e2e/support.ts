@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach } from '@e2e-dev/mobile';
 import type { Screen } from 'e2e';
 
 let installed = false;
+
+// The example's Sample button loads this document; e2e runs from the repo root.
+export const SAMPLE_STROKES: number = JSON.parse(readFileSync('example/src/sample.json', 'utf8'))
+  .strokes.length;
 
 // Installs the build named by INKPAD_APP_PATH once per run. Without it, the app must already be on the device.
 export function installBuildOnce(): void {

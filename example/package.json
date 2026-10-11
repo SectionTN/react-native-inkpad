@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
+    "@expo/material-symbols": "^0.1.1",
     "@expo/metro-runtime": "~57.0.16",
+    "@expo/ui": "~57.0.22",
     "expo": "~57.0.26",
     "expo-build-properties": "~57.0.22",
+    "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
     "react-native-web": "~0.21.0"
   },
   "scripts": {
