@@ -156,3 +156,40 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 7
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Export the example for web
+        run: yarn e2e:web:build
+
+      - name: Install the browsers
+        run: npx --yes playwright-core@1.63.0 install --with-deps chromium webkit
+
+      - name: End-to-end tests on Chromium
+        env:
+          E2E_TELEMETRY_DISABLED: '1'
+        run: yarn e2e --target web
+
+      - name: End-to-end tests on WebKit
+        if: ${{ !cancelled() }}
+        env:
+          E2E_TELEMETRY_DISABLED: '1'
+        run: yarn e2e --target web-webkit
+
+      - name: Upload e2e artifacts
+        # The report also keeps the errors of attempts a retry passed.
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-web
+          path: .e2e
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
