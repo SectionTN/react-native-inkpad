@@ -1785,6 +1785,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@e2e-dev/web@npm:0.14.0":
+  version: 0.14.0
+  resolution: "@e2e-dev/web@npm:0.14.0"
+  dependencies:
+    playwright-core: "npm:1.63.0"
+  peerDependencies:
+    e2e: ">=0.18.0 <1"
+  bin:
+    e2e-web: ./dist/bin.js
+  checksum: 10c0/b84ce0928875b188a4efbff54126f5411a5395299cb7d5f2cc05bb5d39002932cf9f4fdd56d9169d8f35c35a2ce60fa0c2786d8046f2c5c1f0457aec2ca0db46
+  languageName: node
+  linkType: hard
+
 "@expo/cli@npm:^57.0.27":
   version: 57.0.27
   resolution: "@expo/cli@npm:57.0.27"
@@ -8352,6 +8365,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.63.0":
+  version: 1.63.0
+  resolution: "playwright-core@npm:1.63.0"
+  bin:
+    playwright-core: cli.js
+  checksum: 10c0/39c1ebae4029ca2e9371e00a5588d962038e24b6e0bdb7d0d27374dde04838f349b83ae0c8b3b648653d0935cba7fb9011f1201adaab9dd0db7801ad6c75e9aa
+  languageName: node
+  linkType: hard
+
 "plist@npm:^3.0.5":
   version: 3.1.1
   resolution: "plist@npm:3.1.1"
@@ -8630,6 +8652,7 @@ __metadata:
     "@biomejs/biome": "npm:2.5.15"
     "@commitlint/config-conventional": "npm:^21.2.0"
     "@e2e-dev/mobile": "npm:0.12.0"
+    "@e2e-dev/web": "npm:0.14.0"
     "@react-native/babel-preset": "npm:0.86.2"
     "@release-it/conventional-changelog": "npm:^12.0.0"
     "@types/node": "npm:^26.6.4"
