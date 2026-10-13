@@ -8474,7 +8474,7 @@ __metadata:
     vitest: "npm:5.0.3"
   peerDependencies:
     react: "*"
-    react-native: ">=0.80.0"
+    react-native: ">=0.84.0"
   languageName: unknown
   linkType: soft
 
