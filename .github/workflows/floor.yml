@@ -1,0 +1,73 @@
+name: Lowest React Native
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - android/**
+      - ios/**
+      - src/**
+      - package.json
+      - ReactNativeInkpad.podspec
+      - .github/workflows/floor.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - android/**
+      - ios/**
+      - src/**
+      - package.json
+      - ReactNativeInkpad.podspec
+      - .github/workflows/floor.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install JDK
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Pack the library
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Create an app on the lowest React Native the peer range allows
+        run: |
+          floor=$(node -p "require('./package.json').peerDependencies['react-native'].match(/\d+\.\d+/)[0]")
+          version=$(npm view "react-native@~$floor.0" version --json | jq -r 'if type == "array" then last else . end')
+          echo "React Native $version"
+          npx --yes @react-native-community/cli@20.2.0 init InkpadFloor --version "$version" --pm npm --skip-git-init --install-pods false --directory "$RUNNER_TEMP/app"
+
+      - name: Install the packed library
+        working-directory: ${{ runner.temp }}/app
+        run: |
+          npm install "$RUNNER_TEMP"/react-native-inkpad-*.tgz
+          printf '%s\n' "import { InkCanvas } from 'react-native-inkpad';" "" "export default function App() {" "  return <InkCanvas style={{ flex: 1 }} />;" "}" > App.tsx
+
+      - name: Cache Gradle
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.gradle/wrapper
+            ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-floor-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-floor-
+
+      - name: Build the release app
+        working-directory: ${{ runner.temp }}/app/android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
