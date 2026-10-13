@@ -271,7 +271,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     emitChange()
   }
 
-  // getEventDispatcher(context) is missing on RN 0.80, which we still support.
+  // getEventDispatcher(context) arrived in RN 0.85, and the floor is 0.84.
   @Suppress("DEPRECATION")
   internal fun emit(name: String, data: WritableMap = Arguments.createMap()) {
     val surfaceId = UIManagerHelper.getSurfaceId(this)
