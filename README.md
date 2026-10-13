@@ -7,7 +7,7 @@
 [![license](https://img.shields.io/npm/l/react-native-inkpad?style=flat-square&label=license)](https://github.com/SectionTN/react-native-inkpad/blob/main/LICENSE)
 [![Context7](https://img.shields.io/badge/Context7-docs-blue?style=flat-square)](https://context7.com/sectiontn/react-native-inkpad)
 
-A native ink canvas for React Native. It draws with androidx.ink on Android and PencilKit on iOS.
+A native ink canvas for React Native. It draws with androidx.ink on Android, PencilKit on iOS and Canvas 2D on the web.
 
 <picture>
   <source type="image/webp" srcset="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.webp" />
@@ -20,6 +20,7 @@ A native ink canvas for React Native. It draws with androidx.ink on Android and 
 - Undo, redo and clear
 - Export to PNG, JPEG or SVG, optionally trimmed to the drawing
 - Save a drawing as JSON and load it back
+- Web support, with the Ink API for lower latency in Chrome, Edge and other Chromium browsers
 - [Drop-in replacement](#migrating-from-react-native-signature-canvas) for react-native-signature-canvas
 
 ## Installation
@@ -34,6 +35,7 @@ Requirements:
 - React Native 0.84+ (Expo SDK 56+) with the New Architecture
 - iOS 15.1+
 - Android 7.0+ (API 24)
+- Web: react-native-web 0.21+ and a browser with Pointer Events
 - Expo: a development build (Expo Go isn't supported)
 
 ## Usage
@@ -89,7 +91,7 @@ export function SignatureField() {
 | `clear()` | Remove every stroke. |
 | `getStrokes()` | Get the strokes as a plain object you can store as JSON. |
 | `setStrokes(doc)` | Replace the drawing with strokes from `getStrokes()`. |
-| `toImage({ format, quality, scale, trim, background, base64 })` | Export a PNG or JPEG. Resolves to `{ uri, width, height, base64? }`. |
+| `toImage({ format, quality, scale, trim, background, base64 })` | Export a PNG or JPEG. Resolves to `{ uri, width, height, base64? }`. On web, `uri` is a `blob:` URL. |
 | `toSVG({ trim, background })` | Export an SVG string. |
 
 ### Errors
@@ -126,7 +128,7 @@ Props, callbacks and ref methods keep working, and `fromData` loads signatures y
 
 - [x] 0.1: Android and iOS
 - [x] 0.2: React Native 0.84+ (Expo SDK 56+)
-- [ ] 0.3: Web
+- [x] 0.3: Web
 - [ ] 0.4: Background images, stylus-only mode and `onError`
 - [ ] 1.0: First stable release
 
