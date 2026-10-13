@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   acceptsPointer,
+  appendPoint,
   inputOf,
   type PointerSample,
   pointOf,
@@ -72,6 +73,14 @@ describe('pointer', () => {
 
   it('has no predicted events without the method', () => {
     expect(predictedOf(sample({}))).toEqual([]);
+  });
+
+  it('keeps point times non-decreasing from 0', () => {
+    const points: number[] = [];
+    appendPoint(points, [1, 1, -2, -1, -1, -1]);
+    appendPoint(points, [2, 2, 9, -1, -1, -1]);
+    appendPoint(points, [3, 3, 7, -1, -1, -1]);
+    expect([points[2], points[8], points[14]]).toEqual([0, 9, 9]);
   });
 
   it('starts a stroke only for an idle, primary, main-button pointer', () => {

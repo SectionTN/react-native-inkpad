@@ -1,4 +1,4 @@
-import type { InputType } from '../document';
+import { type InputType, POINT_STRIDE } from '../document';
 
 export type PointerSample = {
   pointerId: number;
@@ -56,6 +56,17 @@ export function pointOf(sample: PointerSample, origin: StrokeOrigin, input: Inpu
     angles ? round(clamp(Math.PI / 2 - angles.altitude, 0, Math.PI / 2), 1000) : -1,
     angles ? round(wrapAngle(angles.azimuth), 1000) : -1,
   ];
+}
+
+// validateDocument needs whole times that never go back, from 0.
+export function appendPoint(points: number[], point: readonly number[]): void {
+  const previous = points.length > 0 ? (points[points.length - POINT_STRIDE + 2] as number) : 0;
+  points.push(
+    point[0] as number,
+    point[1] as number,
+    Math.max(previous, point[2] as number),
+    ...point.slice(3),
+  );
 }
 
 export function samplesOf<T>(event: T & { getCoalescedEvents?: () => T[] }): T[] {
