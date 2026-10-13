@@ -77,7 +77,13 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
   const showImage = format === 'PNG' && image !== null;
 
   return (
-    <BottomSheetModal ref={sheet} enableDynamicSizing enablePanDownToClose onDismiss={onClose}>
+    <BottomSheetModal
+      ref={sheet}
+      enableDynamicSizing
+      enablePanDownToClose
+      onDismiss={onClose}
+      backgroundStyle={Platform.OS === 'web' ? { backgroundColor: theme.card } : undefined}
+    >
       <BottomSheetView style={styles.sheet}>
         <Text style={[styles.title, { color: theme.text }]}>Export</Text>
         <SegmentedControl

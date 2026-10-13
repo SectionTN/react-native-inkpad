@@ -10,7 +10,7 @@ import { SignScreen } from './SignScreen';
 import { Toolbar } from './Toolbar';
 import { useTheme } from './theme';
 
-const ENGINE = Platform.OS === 'ios' ? 'PencilKit' : 'androidx.ink';
+const ENGINE = Platform.select({ ios: 'PencilKit', web: 'Canvas 2D', default: 'androidx.ink' });
 
 export default function App() {
   return (

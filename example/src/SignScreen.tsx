@@ -32,10 +32,9 @@ export function SignScreen() {
         </Row>
       </View>
       <Heading theme={theme}>Signature</Heading>
-      <View style={styles.group}>
+      <View style={[styles.group, styles.pad]}>
         <SignatureCanvas
           testID="signature-pad"
-          style={styles.pad}
           penColor="#1A2B4C"
           descriptionText="Sign above"
           trimWhitespace
@@ -122,7 +121,7 @@ const styles = StyleSheet.create({
   divider: { borderTopWidth: StyleSheet.hairlineWidth },
   label: { fontSize: 17 },
   value: { fontSize: 17 },
-  pad: { height: 230, flex: 0 },
+  pad: { height: 230 },
   note: { marginTop: -12, marginBottom: 22, marginHorizontal: 16, fontSize: 13 },
   result: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14 },
   thumb: { width: 116, height: 58, borderRadius: 10, backgroundColor: '#FFFFFF' },
