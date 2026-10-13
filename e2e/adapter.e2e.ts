@@ -1,5 +1,4 @@
-import { test } from '@e2e-dev/mobile';
-import { expect } from 'e2e';
+import { expect, test } from 'e2e';
 import { drawAcross, installBuildOnce, tapCenter } from './support';
 
 installBuildOnce();

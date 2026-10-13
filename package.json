@@ -75,7 +75,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
     "@commitlint/config-conventional": "^21.2.0",
-    "@e2e-dev/mobile": "0.9.1",
+    "@e2e-dev/mobile": "0.12.0",
     "@react-native/babel-preset": "0.86.2",
     "@release-it/conventional-changelog": "^12.0.0",
     "@types/node": "^26.6.4",
@@ -83,7 +83,7 @@
     "ai": "^7.0.0",
     "commitlint": "^21.2.1",
     "del-cli": "^7.0.0",
-    "e2e": "0.16.0",
+    "e2e": "0.20.0",
     "lefthook": "^2.1.10",
     "react": "19.2.3",
     "react-native": "0.86.3",

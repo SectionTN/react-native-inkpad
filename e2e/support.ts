@@ -8,11 +8,11 @@ let installed = false;
 export const SAMPLE_STROKES: number = JSON.parse(readFileSync('example/src/sample.json', 'utf8'))
   .strokes.length;
 
-// Installs the build named by INKPAD_APP_PATH once per run. Without it, the app must already be on the device.
+// Installs the build named by INKPAD_APP_PATH once per run on device targets. Without it, the app must already be on the device.
 export function installBuildOnce(): void {
-  beforeEach(async ({ device }) => {
-    if (installed || !process.env.INKPAD_APP_PATH) return;
-    await device.installApp();
+  beforeEach(async (fixtures) => {
+    if (fixtures.platform === 'web' || installed || !process.env.INKPAD_APP_PATH) return;
+    await fixtures.device.installApp();
     installed = true;
   });
 }
