@@ -19,7 +19,7 @@ export const IGNORED_PROPS = [
   'overlayHeight',
 ] as const;
 
-// These need background image support, which ships in 0.3.
+// These need background image support, which ships in 0.4.
 export const LATER_PROPS = ['bgSrc', 'dataURL'] as const;
 
 const FOOTER_HIDDEN = /\.m-signature-pad--footer[^{]*\{[^}]*display\s*:\s*none/i;

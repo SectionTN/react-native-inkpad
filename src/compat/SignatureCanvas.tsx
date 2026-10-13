@@ -110,7 +110,7 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
         );
       })().catch((error: Error) => props.onError?.(error));
     },
-    setDataURL: () => warn('setDataURL needs background images, which ship in 0.3'),
+    setDataURL: () => warn('setDataURL needs background images, which ship in 0.4'),
     reinitialize: () => {
       ink.current?.clear();
       setErasing(false);

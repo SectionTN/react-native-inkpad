@@ -120,7 +120,7 @@ Props, callbacks and ref methods keep working, and `fromData` loads signatures y
 - Props that don't apply anymore, like `customHtml` or `minWidth`, are ignored. A dev warning lists them.
 - The footer has a new look. Pass `renderFooter` to draw your own.
 - The eraser removes whole strokes, not pixels.
-- `bgSrc`, `dataURL` and `setDataURL` need background images, which come in 0.3.
+- `bgSrc`, `dataURL` and `setDataURL` need background images, which come in 0.4.
 
 ## Roadmap
 
