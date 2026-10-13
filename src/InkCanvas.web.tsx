@@ -1,6 +1,6 @@
 import type { CSSProperties, RefObject } from 'react';
 import { useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { type ColorValue, processColor, View } from 'react-native';
+import { type ColorValue, processColor, StyleSheet, View } from 'react-native';
 import { argbToHex } from './color';
 import {
   type BrushType,
@@ -400,7 +400,7 @@ export function InkCanvas({
   }, [surface]);
 
   return (
-    <View {...viewProps}>
+    <View {...viewProps} style={[styles.clip, viewProps.style]}>
       <canvas ref={bottomRef} style={fill} />
       <canvas
         ref={topRef}
@@ -415,3 +415,5 @@ export function InkCanvas({
     </View>
   );
 }
+
+const styles = StyleSheet.create({ clip: { overflow: 'hidden' } });

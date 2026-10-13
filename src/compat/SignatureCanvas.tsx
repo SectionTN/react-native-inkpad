@@ -153,7 +153,7 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
                 onPress={actions.clearSignature}
                 style={({ pressed }) => [styles.button, styles.clear, pressed && styles.pressed]}
               >
-                <Image source={{ uri: TRASH_ICON }} style={[styles.icon, styles.clearIcon]} />
+                <Image source={{ uri: TRASH_ICON }} tintColor={CLEAR_INK} style={styles.icon} />
                 <Text style={[styles.label, styles.clearLabel]}>{props.clearText ?? 'Clear'}</Text>
               </Pressable>
               <Text style={styles.description} numberOfLines={1}>
@@ -165,7 +165,7 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
                 onPress={actions.readSignature}
                 style={({ pressed }) => [styles.button, styles.confirm, pressed && styles.pressed]}
               >
-                <Image source={{ uri: CHECK_ICON }} style={[styles.icon, styles.confirmIcon]} />
+                <Image source={{ uri: CHECK_ICON }} tintColor="#FFFFFF" style={styles.icon} />
                 <Text style={[styles.label, styles.confirmLabel]}>
                   {props.confirmText ?? 'Confirm'}
                 </Text>
@@ -203,8 +203,6 @@ const styles = StyleSheet.create({
   confirm: { backgroundColor: '#2F6FED' },
   pressed: { opacity: 0.7 },
   icon: { width: 14, height: 14 },
-  clearIcon: { tintColor: CLEAR_INK },
-  confirmIcon: { tintColor: '#FFFFFF' },
   label: { fontSize: 14, fontWeight: '600' },
   clearLabel: { color: CLEAR_INK },
   confirmLabel: { color: '#FFFFFF' },
