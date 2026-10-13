@@ -25,6 +25,23 @@ buildscript {
   }
 }
 
+// Codegen before RN 0.84 rejects the spec with an unclear error, so stop here first.
+def reactNativeVersion = null
+try {
+  def reactNativePackage = providers.exec {
+    workingDir(rootDir)
+    commandLine("node", "--print", "require.resolve('react-native/package.json')")
+  }.standardOutput.asText.get().trim()
+  reactNativeVersion = new groovy.json.JsonSlurper().parse(file(reactNativePackage)).version
+} catch (Exception ignored) {
+}
+if (reactNativeVersion != null) {
+  def (major, minor) = reactNativeVersion.tokenize(".").take(2)*.toInteger()
+  if (major == 0 && minor < 84) {
+    throw new GradleException("react-native-inkpad needs React Native 0.84 or newer (Expo SDK 56+), found $reactNativeVersion. Upgrade React Native or install react-native-inkpad@0.1.1.")
+  }
+}
+
 apply plugin: "com.android.library"
 
 if (project.extensions.findByName("kotlin") == null) {

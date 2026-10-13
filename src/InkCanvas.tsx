@@ -11,7 +11,7 @@ import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
 import { toSVG } from './svg/toSVG';
 import type { ImageResult, InkCanvasProps } from './types';
 
-type NativeRef = React.ElementRef<typeof NativeInkpadView>;
+type NativeRef = React.ComponentRef<typeof NativeInkpadView>;
 
 export function InkCanvas({
   ref,

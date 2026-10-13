@@ -32,20 +32,20 @@ export interface NativeProps extends ViewProps {
 }
 
 interface NativeCommands {
-  undo: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
-  redo: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
-  clear: (viewRef: React.ElementRef<HostComponent<NativeProps>>) => void;
+  undo: (viewRef: React.ComponentRef<HostComponent<NativeProps>>) => void;
+  redo: (viewRef: React.ComponentRef<HostComponent<NativeProps>>) => void;
+  clear: (viewRef: React.ComponentRef<HostComponent<NativeProps>>) => void;
   getStrokes: (
-    viewRef: React.ElementRef<HostComponent<NativeProps>>,
+    viewRef: React.ComponentRef<HostComponent<NativeProps>>,
     requestId: CodegenTypes.Int32,
   ) => void;
   setStrokes: (
-    viewRef: React.ElementRef<HostComponent<NativeProps>>,
+    viewRef: React.ComponentRef<HostComponent<NativeProps>>,
     requestId: CodegenTypes.Int32,
     json: string,
   ) => void;
   exportImage: (
-    viewRef: React.ElementRef<HostComponent<NativeProps>>,
+    viewRef: React.ComponentRef<HostComponent<NativeProps>>,
     requestId: CodegenTypes.Int32,
     optionsJson: string,
   ) => void;

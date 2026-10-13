@@ -31,7 +31,7 @@ cd ios && pod install
 
 Requirements:
 
-- React Native 0.80+ with the New Architecture
+- React Native 0.84+ (Expo SDK 56+) with the New Architecture
 - iOS 15.1+
 - Android 7.0+ (API 24)
 - Expo: a development build (Expo Go isn't supported)
@@ -125,8 +125,9 @@ Props, callbacks and ref methods keep working, and `fromData` loads signatures y
 ## Roadmap
 
 - [x] 0.1: Android and iOS
-- [ ] 0.2: Web
-- [ ] 0.3: Background images, stylus-only mode and `onError`
+- [x] 0.2: React Native 0.84+ (Expo SDK 56+)
+- [ ] 0.3: Web
+- [ ] 0.4: Background images, stylus-only mode and `onError`
 - [ ] 1.0: First stable release
 
 ## Contributing
