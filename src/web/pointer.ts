@@ -25,12 +25,11 @@ function wrapAngle(angle: number): number {
   return wrapped < 0 ? wrapped + 2 * Math.PI : wrapped;
 }
 
-function anglesOf(sample: PointerSample): { altitude: number; azimuth: number } | null {
+function anglesOf(sample: PointerSample): { altitude: number; azimuth: number } {
   if (sample.altitudeAngle !== undefined && sample.azimuthAngle !== undefined) {
     return { altitude: sample.altitudeAngle, azimuth: sample.azimuthAngle };
   }
-  if (sample.tiltX === 0 && sample.tiltY === 0) return null;
-  // Pointer Events level 3 conversion from tiltX and tiltY to altitude and azimuth.
+  // Pointer Events level 3 conversion from tiltX and tiltY. A pen with no tilt reads as upright, like Chrome reports it.
   const tx = Math.tan((sample.tiltX * Math.PI) / 180);
   const ty = Math.tan((sample.tiltY * Math.PI) / 180);
   return { altitude: Math.atan(1 / Math.hypot(tx, ty)), azimuth: Math.atan2(ty, tx) };
@@ -53,8 +52,8 @@ export function pointOf(sample: PointerSample, origin: StrokeOrigin, input: Inpu
   return [
     ...point,
     round(clamp(sample.pressure, 0, 1), 1000),
-    angles ? round(clamp(Math.PI / 2 - angles.altitude, 0, Math.PI / 2), 1000) : -1,
-    angles ? round(wrapAngle(angles.azimuth), 1000) : -1,
+    round(clamp(Math.PI / 2 - angles.altitude, 0, Math.PI / 2), 1000),
+    round(wrapAngle(angles.azimuth), 1000),
   ];
 }
 

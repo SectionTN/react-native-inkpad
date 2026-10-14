@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { validateDocument } from '../document';
 import {
   acceptsPointer,
   appendPoint,
@@ -53,10 +54,20 @@ describe('pointer', () => {
     ]);
   });
 
-  it('writes -1 for tilt when the pen reports none', () => {
-    expect(pointOf(sample({ pointerType: 'pen' }), origin, 'stylus').slice(3)).toEqual([
-      0.5, -1, -1,
-    ]);
+  it('treats a pen with no tilt as upright', () => {
+    expect(pointOf(sample({ pointerType: 'pen' }), origin, 'stylus').slice(3)).toEqual([0.5, 0, 0]);
+  });
+
+  it('records a pen stroke that passes upright as a valid document', () => {
+    const points: number[] = [];
+    for (const tiltX of [12, 0, 10]) {
+      appendPoint(points, pointOf(sample({ pointerType: 'pen', tiltX }), origin, 'stylus'));
+    }
+    const brush = { type: 'pen', color: '#000000FF', size: 4 };
+    const strokes = [{ brush, input: 'stylus', points }];
+    expect(() =>
+      validateDocument({ version: 1, size: { width: 9, height: 9 }, strokes }),
+    ).not.toThrow();
   });
 
   it('clamps pressure to 1', () => {
