@@ -16,8 +16,8 @@ A native ink canvas for React Native. It draws with androidx.ink on Android, Pen
 
 ## Features
 
-- Pen, marker and highlighter brushes, plus an eraser
-- Undo, redo and clear
+- Pen, marker and highlighter brushes, an eraser, undo and redo
+- Background images and a stylus-only mode
 - Export to PNG, JPEG or SVG, optionally trimmed to the drawing
 - Save a drawing as JSON and load it back
 - Web support, with the Ink API for lower latency in Chrome, Edge and other Chromium browsers
@@ -77,11 +77,13 @@ export function SignatureField() {
 | --- | --- | --- | --- |
 | `brush` | `{ type, color, size }` | black pen, size 3 | Brush for new strokes. `type` is `'pen'`, `'marker'` or `'highlighter'`. |
 | `tool` | `'draw' \| 'erase'` | `'draw'` | The eraser removes whole strokes. |
+| `inputMode` | `'any' \| 'stylus'` | `'any'` | With `'stylus'`, only a pen draws and fingers go to the parent. On web, fingers don't scroll over the canvas. |
 | `editable` | `boolean` | `true` | Set to `false` to turn drawing off. |
-| `background` | `{ color }` | transparent | Canvas color. |
+| `background` | `{ color, image, fit }` | transparent | Canvas color and an image under the ink, both exported. `image` takes an image source, `fit` is `'contain'` or `'cover'`. On web, an image from another origin needs CORS headers. |
 | `onStrokeStart` | `() => void` | | Called when a stroke starts. |
 | `onStrokeEnd` | `() => void` | | Called when a stroke ends. |
 | `onChange` | `(state) => void` | | Called after every change with `{ strokeCount, canUndo, canRedo }`. |
+| `onError` | `(error) => void` | | Called with an `InkpadError` when the background image fails to load. |
 
 ### Methods
 
@@ -92,7 +94,7 @@ export function SignatureField() {
 | `getStrokes()` | Get the strokes as a plain object you can store as JSON. |
 | `setStrokes(doc)` | Replace the drawing with strokes from `getStrokes()`. |
 | `toImage({ format, quality, scale, trim, background, base64 })` | Export a PNG or JPEG. Resolves to `{ uri, width, height, base64? }`. On web, `uri` is a `blob:` URL. |
-| `toSVG({ trim, background })` | Export an SVG string. |
+| `toSVG({ trim, background })` | Export an SVG string. It links the background image by URI. |
 
 ### Errors
 
@@ -106,6 +108,7 @@ Failed calls throw an `InkpadError`. Its `code` is one of:
 | `E_UNSUPPORTED_VERSION` | The document was saved by a newer version of the library. |
 | `E_EMPTY` | `trim` was set but the canvas is empty. |
 | `E_EXPORT_FAILED` | The image couldn't be created or saved. |
+| `E_IMAGE_LOAD` | The background image couldn't be loaded. It goes to `onError`. |
 | `E_NATIVE` | Any other native error. |
 
 ## Migrating from react-native-signature-canvas
@@ -121,15 +124,15 @@ Props, callbacks and ref methods keep working, and `fromData` loads signatures y
 
 - Props that don't apply anymore, like `customHtml` or `minWidth`, are ignored. A dev warning lists them.
 - The footer has a new look. Pass `renderFooter` to draw your own.
-- The eraser removes whole strokes, not pixels.
-- `bgSrc`, `dataURL` and `setDataURL` need background images, which come in 0.4.
+- The eraser removes whole strokes, not pixels. It can't remove a `dataURL` image.
+- A `dataURL` image keeps its aspect ratio instead of stretching to the pad.
 
 ## Roadmap
 
 - [x] 0.1: Android and iOS
 - [x] 0.2: React Native 0.84+ (Expo SDK 56+)
 - [x] 0.3: Web
-- [ ] 0.4: Background images, stylus-only mode and `onError`
+- [x] 0.4: Background images, stylus-only mode and `onError`
 - [ ] 1.0: First stable release
 
 ## Contributing
