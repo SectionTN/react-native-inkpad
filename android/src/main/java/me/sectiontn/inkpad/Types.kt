@@ -32,3 +32,21 @@ internal class InkpadStroke(
 ) {
   class Meta(val type: BrushType, val color: Int, val size: Float, val input: InputType)
 }
+
+internal enum class InputMode(val id: String) {
+  ANY("any"),
+  STYLUS("stylus");
+
+  companion object {
+    fun from(id: String?): InputMode? = entries.firstOrNull { it.id == id }
+  }
+}
+
+internal enum class BackgroundFit(val id: String) {
+  CONTAIN("contain"),
+  COVER("cover");
+
+  companion object {
+    fun from(id: String?): BackgroundFit? = entries.firstOrNull { it.id == id }
+  }
+}

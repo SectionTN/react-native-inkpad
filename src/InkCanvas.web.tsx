@@ -41,6 +41,7 @@ type Live = {
   onStrokeStart?: () => void;
   onStrokeEnd?: () => void;
   onChange?: (state: InkState) => void;
+  onError?: (error: InkpadError) => void;
 };
 
 type Gesture =
@@ -325,14 +326,16 @@ export function InkCanvas({
   ref,
   brush,
   tool,
+  inputMode,
   editable,
   background,
   onStrokeStart,
   onStrokeEnd,
   onChange,
+  onError,
   ...viewProps
 }: InkCanvasProps) {
-  const native = toNativeInkProps({ brush, tool, editable, background });
+  const native = toNativeInkProps({ brush, tool, editable, background, inputMode });
   const backgroundHex = hexOf(native.canvasColor);
   const current: Live = {
     brushType: native.brushType,
@@ -343,6 +346,7 @@ export function InkCanvas({
     onStrokeStart,
     onStrokeEnd,
     onChange,
+    onError,
   };
   const live = useRef(current);
   live.current = current;

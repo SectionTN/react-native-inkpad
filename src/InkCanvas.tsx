@@ -1,11 +1,11 @@
 import type * as React from 'react';
 import { useEffect, useImperativeHandle, useRef } from 'react';
-import { PixelRatio, processColor } from 'react-native';
+import { Image, PixelRatio, processColor } from 'react-native';
 import { argbToHex } from './color';
 import { validateDocument } from './document';
-import { ErrorCode, InkpadError } from './errors';
+import { ErrorCode, InkpadError, toInkpadError } from './errors';
 import { toNativeImageOptions } from './imageOptions';
-import { toNativeInkProps } from './nativeProps';
+import { type ResolveImage, toNativeInkProps } from './nativeProps';
 import { Requests } from './requests';
 import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
 import { toSVG } from './svg/toSVG';
@@ -13,15 +13,19 @@ import type { ImageResult, InkCanvasProps } from './types';
 
 type NativeRef = React.ComponentRef<typeof NativeInkpadView>;
 
+const resolveImage: ResolveImage = (source) => Image.resolveAssetSource(source)?.uri;
+
 export function InkCanvas({
   ref,
   brush,
   tool,
+  inputMode,
   editable,
   background,
   onStrokeStart,
   onStrokeEnd,
   onChange,
+  onError,
   ...viewProps
 }: InkCanvasProps) {
   const nativeRef = useRef<NativeRef>(null);
@@ -76,12 +80,17 @@ export function InkCanvas({
   return (
     <NativeInkpadView
       {...viewProps}
-      {...toNativeInkProps({ brush, tool, editable, background })}
+      {...toNativeInkProps({ brush, tool, editable, background, inputMode }, resolveImage)}
       ref={nativeRef}
       onInkStrokeStart={() => onStrokeStart?.()}
       onInkStrokeEnd={() => onStrokeEnd?.()}
       onInkChange={(event) => onChange?.(event.nativeEvent)}
       onInkResult={(event) => requests.settle(event.nativeEvent)}
+      onInkError={(event) => {
+        const { code, message } = event.nativeEvent;
+        if (onError) onError(toInkpadError(code, message));
+        else if (__DEV__) console.warn(`react-native-inkpad: ${message}`);
+      }}
     />
   );
 }

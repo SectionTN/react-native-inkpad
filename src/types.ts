@@ -1,10 +1,16 @@
 import type { Ref } from 'react';
-import type { ColorValue, ViewProps } from 'react-native';
+import type { ColorValue, ImageSourcePropType, ViewProps } from 'react-native';
 import type { BrushType, InkDocument } from './document';
+import type { InkpadError } from './errors';
+import type { BackgroundFit } from './geometry/fit';
 
-export type { BrushType };
+export type { BackgroundFit, BrushType };
 
 export type Brush = { type?: BrushType; color?: ColorValue; size?: number };
+
+export type InputMode = 'any' | 'stylus';
+
+export type Background = { color?: ColorValue; image?: ImageSourcePropType; fit?: BackgroundFit };
 
 export type InkState = { strokeCount: number; canUndo: boolean; canRedo: boolean };
 
@@ -22,11 +28,13 @@ export type InkCanvasProps = ViewProps & {
   ref?: Ref<InkCanvasRef>;
   brush?: Brush;
   tool?: 'draw' | 'erase';
+  inputMode?: InputMode;
   editable?: boolean;
-  background?: { color?: ColorValue };
+  background?: Background;
   onStrokeStart?: () => void;
   onStrokeEnd?: () => void;
   onChange?: (state: InkState) => void;
+  onError?: (error: InkpadError) => void;
 };
 
 export type Trim = boolean | { padding: number };

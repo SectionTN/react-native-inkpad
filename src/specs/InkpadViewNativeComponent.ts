@@ -10,6 +10,11 @@ type ChangeEvent = Readonly<{
   canRedo: boolean;
 }>;
 
+type ErrorEvent = Readonly<{
+  code: string;
+  message: string;
+}>;
+
 type ResultEvent = Readonly<{
   requestId: CodegenTypes.Int32;
   ok: boolean;
@@ -25,10 +30,14 @@ export interface NativeProps extends ViewProps {
   tool?: CodegenTypes.WithDefault<'draw' | 'erase', 'draw'>;
   editable?: CodegenTypes.WithDefault<boolean, true>;
   canvasColor?: ColorValue;
+  inputMode?: CodegenTypes.WithDefault<'any' | 'stylus', 'any'>;
+  backgroundImageUri?: string;
+  backgroundFit?: CodegenTypes.WithDefault<'contain' | 'cover', 'contain'>;
   onInkStrokeStart?: CodegenTypes.DirectEventHandler<EmptyEvent>;
   onInkStrokeEnd?: CodegenTypes.DirectEventHandler<EmptyEvent>;
   onInkChange?: CodegenTypes.DirectEventHandler<ChangeEvent>;
   onInkResult?: CodegenTypes.DirectEventHandler<ResultEvent>;
+  onInkError?: CodegenTypes.DirectEventHandler<ErrorEvent>;
 }
 
 interface NativeCommands {

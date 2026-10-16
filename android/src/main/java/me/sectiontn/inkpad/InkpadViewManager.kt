@@ -48,6 +48,21 @@ class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInte
     view.canvasColor = value ?: Color.TRANSPARENT
   }
 
+  @ReactProp(name = "inputMode")
+  override fun setInputMode(view: InkpadView, value: String?) {
+    view.inputMode = InputMode.from(value) ?: InputMode.ANY
+  }
+
+  @ReactProp(name = "backgroundImageUri")
+  override fun setBackgroundImageUri(view: InkpadView, value: String?) {
+    view.backgroundImageUri = value
+  }
+
+  @ReactProp(name = "backgroundFit")
+  override fun setBackgroundFit(view: InkpadView, value: String?) {
+    view.backgroundFit = BackgroundFit.from(value) ?: BackgroundFit.CONTAIN
+  }
+
   override fun undo(view: InkpadView) = view.undo()
 
   override fun redo(view: InkpadView) = view.redo()
@@ -66,6 +81,6 @@ class InkpadViewManager : SimpleViewManager<InkpadView>(), InkpadViewManagerInte
 
   companion object {
     const val NAME = "InkpadView"
-    private val EVENTS = listOf("topInkStrokeStart", "topInkStrokeEnd", "topInkChange", "topInkResult")
+    private val EVENTS = listOf("topInkStrokeStart", "topInkStrokeEnd", "topInkChange", "topInkResult", "topInkError")
   }
 }

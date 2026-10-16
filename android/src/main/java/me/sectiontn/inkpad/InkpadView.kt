@@ -41,6 +41,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   internal var brushSize = 3f
   internal var editable = true
   internal var erasing = false
+  internal var inputMode = InputMode.ANY
+  internal var backgroundFit = BackgroundFit.CONTAIN
+  internal var backgroundImageUri: String? = null
   private var eraserLast: ImmutableVec? = null
   private var eraseBefore: List<InkpadStroke>? = null
   internal var canvasColor = Color.TRANSPARENT

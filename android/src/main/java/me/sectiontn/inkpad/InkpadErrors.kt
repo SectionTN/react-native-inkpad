@@ -5,6 +5,7 @@ internal object ErrorCodes {
   const val UNSUPPORTED_VERSION = "E_UNSUPPORTED_VERSION"
   const val EMPTY = "E_EMPTY"
   const val EXPORT_FAILED = "E_EXPORT_FAILED"
+  const val IMAGE_LOAD = "E_IMAGE_LOAD"
   const val NATIVE = "E_NATIVE"
 }
 
