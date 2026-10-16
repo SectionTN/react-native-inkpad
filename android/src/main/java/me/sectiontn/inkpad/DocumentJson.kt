@@ -20,6 +20,7 @@ internal class Doc(val width: Float, val height: Float, val strokes: List<DocStr
 internal object DocumentJson {
   const val VERSION = 1
   const val STRIDE = 6
+  private const val MIN_SIZE = 0.001
 
   fun parse(json: String): Doc {
     val root = try {
@@ -57,12 +58,12 @@ internal object DocumentJson {
       val brush = JSONObject()
         .put("type", stroke.type.id)
         .put("color", ColorHex.fromArgb(stroke.color))
-        .put("size", stroke.size.toDouble())
+        .put("size", round(stroke.size, 1000.0).coerceAtLeast(MIN_SIZE))
       strokes.put(JSONObject().put("brush", brush).put("input", stroke.input.id).put("points", points))
     }
     return JSONObject()
       .put("version", VERSION)
-      .put("size", JSONObject().put("width", doc.width.toDouble()).put("height", doc.height.toDouble()))
+      .put("size", JSONObject().put("width", round(doc.width, 100.0)).put("height", round(doc.height, 100.0)))
       .put("strokes", strokes)
       .toString()
   }

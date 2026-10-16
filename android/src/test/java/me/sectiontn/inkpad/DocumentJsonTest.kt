@@ -1,7 +1,9 @@
 package me.sectiontn.inkpad
 
+import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -21,6 +23,24 @@ class DocumentJsonTest {
     assertEquals(0xFF112233.toInt(), stroke.color)
     assertEquals(InputType.TOUCH, stroke.input)
     assertEquals(12.5f, stroke.points[7], 0f)
+  }
+
+  @Test
+  fun writesSizesRoundedLikePoints() {
+    val stroke = DocStroke(BrushType.PEN, 0xFF000000.toInt(), 6.4f, InputType.TOUCH, floatArrayOf(1f, 2f, 0f, -1f, -1f, -1f))
+    val json = DocumentJson.write(Doc(379.4285583496094f, 600f, listOf(stroke)))
+    val root = JSONObject(json)
+    assertEquals(379.43, root.getJSONObject("size").getDouble("width"), 0.0)
+    assertEquals(600.0, root.getJSONObject("size").getDouble("height"), 0.0)
+    assertEquals(6.4, root.getJSONArray("strokes").getJSONObject(0).getJSONObject("brush").getDouble("size"), 0.0)
+    assertFalse(json.contains("6.400000"))
+  }
+
+  @Test
+  fun keepsATinyBrushSizePositive() {
+    val stroke = DocStroke(BrushType.PEN, 0xFF000000.toInt(), 0.0004f, InputType.TOUCH, floatArrayOf(1f, 2f, 0f, -1f, -1f, -1f))
+    val again = DocumentJson.parse(DocumentJson.write(Doc(100f, 100f, listOf(stroke))))
+    assertEquals(0.001f, again.strokes[0].size, 0f)
   }
 
   @Test
