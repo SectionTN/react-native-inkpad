@@ -96,6 +96,8 @@ static NSString *INKInputName(UITouchType type)
   _brushSize = newProps.brushSize;
   _canvas.backgroundColor = RCTUIColorFromSharedColor(newProps.canvasColor) ?: UIColor.clearColor;
   _canvas.drawingGestureRecognizer.enabled = newProps.editable;
+  _canvas.drawingPolicy = newProps.inputMode == InkpadViewInputMode::Stylus ? PKCanvasViewDrawingPolicyPencilOnly
+                                                                            : PKCanvasViewDrawingPolicyAnyInput;
   _erasing = newProps.tool == InkpadViewTool::Erase;
   [self applyTool];
 
