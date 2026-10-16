@@ -78,17 +78,20 @@ function Main() {
         onChange={(event) => setTab(event.nativeEvent.selectedSegmentIndex)}
         style={styles.tabs}
       />
-      <View style={[styles.page, !drawing && styles.hidden]}>
-        <DrawScreen
-          canvas={canvas}
-          paper={paper}
-          pencilOnly={pencilOnly}
-          onChange={setInk}
-          onError={(code) => setError(code)}
-        />
-      </View>
-      <View style={[styles.page, drawing && styles.hidden]}>
-        <SignScreen />
+      {/* Fabric does not mount display: none views, so a hidden canvas would lose its drawing. */}
+      <View style={styles.pages}>
+        <View style={[styles.page, !drawing && styles.hidden]} aria-hidden={!drawing}>
+          <DrawScreen
+            canvas={canvas}
+            paper={paper}
+            pencilOnly={pencilOnly}
+            onChange={setInk}
+            onError={(code) => setError(code)}
+          />
+        </View>
+        <View style={[styles.page, drawing && styles.hidden]} aria-hidden={drawing}>
+          <SignScreen />
+        </View>
       </View>
     </View>
   );
@@ -104,6 +107,7 @@ const styles = StyleSheet.create({
   }),
   subtitle: { fontSize: Platform.OS === 'ios' ? 15 : 14 },
   tabs: { marginHorizontal: 16, marginTop: 14 },
-  page: { flex: 1 },
-  hidden: { display: 'none' },
+  page: StyleSheet.absoluteFill,
+  pages: { flex: 1 },
+  hidden: { opacity: 0, pointerEvents: 'none' },
 });
