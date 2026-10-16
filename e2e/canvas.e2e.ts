@@ -42,3 +42,26 @@ test('loads the sample, exports it and loads it back', async ({ app, screen }) =
   await tapCenter(screen.getByTestId('reload'));
   await expect(screen.getByTestId('export-status')).toHaveText(`Reloaded ${strokes}`);
 });
+
+test('draws on paper and exports it', async ({ app, screen }) => {
+  await app.restart();
+  await tapCenter(screen.getByTestId('background-toggle'));
+  await expect(screen.getByTestId('status')).toContainText('paper');
+  await drawAcross(screen, 'canvas');
+  await expect(screen.getByTestId('status')).toContainText('1 stroke');
+  await expect(screen.getByTestId('status')).not.toContainText('E_IMAGE_LOAD');
+  await tapCenter(screen.getByLabel('Export'));
+  await expect(screen.getByTestId('export-status')).toContainText('PNG · ');
+});
+
+test('ignores fingers in pencil only mode', async ({ app, screen }) => {
+  await app.restart();
+  await tapCenter(screen.getByTestId('stylus-toggle'));
+  await expect(screen.getByTestId('status')).toContainText('pencil only');
+  await drawAcross(screen, 'canvas');
+  await tapCenter(screen.getByTestId('stylus-toggle'));
+  await expect(screen.getByTestId('status')).not.toContainText('pencil only');
+  await drawAcross(screen, 'canvas');
+  // The first swipe never counted, so the second one is the only stroke.
+  await expect(screen.getByTestId('status')).toContainText('1 stroke');
+});
