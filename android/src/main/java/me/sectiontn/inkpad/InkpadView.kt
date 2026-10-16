@@ -123,6 +123,8 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   @SuppressLint("ClickableViewAccessibility")
   override fun onTouchEvent(event: MotionEvent): Boolean {
     if (!editable) return false
+    // Returning false on the down event leaves the whole gesture to the parent, so it can scroll.
+    if (event.actionMasked == MotionEvent.ACTION_DOWN && !inputMode.accepts(event.getToolType(0))) return false
     return if (erasing) eraseTouch(event) else drawTouch(event)
   }
 
@@ -278,9 +280,12 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     val canvasWidth = width / density
     val canvasHeight = height / density
     val color = canvasColor
+    val load = imageLoad
+    val fit = backgroundFit
     EXPORTER.execute {
+      val image = runCatching { load?.get() }.getOrNull()
       val result = runCatching {
-        ImageExporter.export(reactContext, snapshot, canvasWidth, canvasHeight, color, options)
+        ImageExporter.export(reactContext, snapshot, canvasWidth, canvasHeight, color, image, fit, options)
       }
       post {
         result.fold(

@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.RectF
 import android.net.Uri
 import android.util.Base64
 import androidx.ink.rendering.android.canvas.CanvasStrokeRenderer
@@ -16,6 +18,7 @@ import kotlin.math.roundToInt
 
 internal object ImageExporter {
   private val renderer by lazy { CanvasStrokeRenderer.create() }
+  private val imagePaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
   fun export(
     context: Context,
@@ -23,6 +26,8 @@ internal object ImageExporter {
     width: Float,
     height: Float,
     canvasColor: Int,
+    image: Bitmap?,
+    fit: BackgroundFit,
     options: ExportOptions,
   ): String {
     var left = 0f
@@ -49,6 +54,7 @@ internal object ImageExporter {
         preTranslate(-left, -top)
       }
       canvas.concat(transform)
+      if (options.background && image != null) drawImage(canvas, image, width, height, fit)
       for (item in strokes) renderer.draw(canvas, item.stroke, transform)
       val bytes = ByteArrayOutputStream().use { out ->
         val format = if (options.jpeg) Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
@@ -66,5 +72,13 @@ internal object ImageExporter {
     } finally {
       bitmap.recycle()
     }
+  }
+
+  private fun drawImage(canvas: Canvas, image: Bitmap, width: Float, height: Float, fit: BackgroundFit) {
+    val rect = Fit.rect(image.width.toFloat(), image.height.toFloat(), width, height, fit)
+    val saved = canvas.save()
+    canvas.clipRect(0f, 0f, width, height)
+    canvas.drawBitmap(image, null, RectF(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height), imagePaint)
+    canvas.restoreToCount(saved)
   }
 }

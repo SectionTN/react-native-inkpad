@@ -1,5 +1,6 @@
 package me.sectiontn.inkpad
 
+import android.view.MotionEvent
 import androidx.ink.strokes.Stroke
 
 internal enum class BrushType(val id: String) {
@@ -36,6 +37,9 @@ internal class InkpadStroke(
 internal enum class InputMode(val id: String) {
   ANY("any"),
   STYLUS("stylus");
+
+  fun accepts(toolType: Int): Boolean =
+    this == ANY || toolType == MotionEvent.TOOL_TYPE_STYLUS || toolType == MotionEvent.TOOL_TYPE_ERASER
 
   companion object {
     fun from(id: String?): InputMode? = entries.firstOrNull { it.id == id }
