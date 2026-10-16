@@ -34,6 +34,9 @@ export function InkCanvas({
   const requests = requestsRef.current;
   const processed = processColor(background?.color);
   const backgroundHex = typeof processed === 'number' ? argbToHex(processed) : undefined;
+  const inkProps = toNativeInkProps({ brush, tool, editable, background, inputMode }, resolveImage);
+  const imageUri = inkProps.backgroundImageUri;
+  const imageFit = inkProps.backgroundFit;
 
   useEffect(
     () => () => requests.rejectAll(new InkpadError(ErrorCode.NOT_MOUNTED, 'InkCanvas unmounted')),
@@ -73,14 +76,18 @@ export function InkCanvas({
         toSVG(await getStrokes(), {
           trim: options.trim,
           backgroundColor: options.background === false ? undefined : backgroundHex,
+          backgroundImage:
+            options.background === false || !imageUri
+              ? undefined
+              : { uri: imageUri, fit: imageFit },
         }),
     };
-  }, [requests, backgroundHex]);
+  }, [requests, backgroundHex, imageUri, imageFit]);
 
   return (
     <NativeInkpadView
       {...viewProps}
-      {...toNativeInkProps({ brush, tool, editable, background, inputMode }, resolveImage)}
+      {...inkProps}
       ref={nativeRef}
       onInkStrokeStart={() => onStrokeStart?.()}
       onInkStrokeEnd={() => onStrokeEnd?.()}

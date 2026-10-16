@@ -50,6 +50,52 @@ describe('toSVG', () => {
     );
   });
 
+  it('links the background image across the canvas', () => {
+    expect(
+      toSVG(doc([]), { backgroundImage: { uri: 'https://x.test/a.png', fit: 'contain' } }),
+    ).toContain(
+      '<image href="https://x.test/a.png" x="0" y="0" width="300" height="200" preserveAspectRatio="xMidYMid meet"/>',
+    );
+  });
+
+  it('slices the background image when it covers', () => {
+    expect(
+      toSVG(doc([]), { backgroundImage: { uri: 'https://x.test/a.png', fit: 'cover' } }),
+    ).toContain('preserveAspectRatio="xMidYMid slice"');
+  });
+
+  it('escapes the image URI', () => {
+    expect(
+      toSVG(doc([]), {
+        backgroundImage: { uri: 'https://x.test/a.png?w=1&h="2"', fit: 'contain' },
+      }),
+    ).toContain('href="https://x.test/a.png?w=1&amp;h=&quot;2&quot;"');
+  });
+
+  it('leaves out an image URI with no scheme', () => {
+    expect(toSVG(doc([]), { backgroundImage: { uri: 'src_paper', fit: 'contain' } })).not.toContain(
+      '<image',
+    );
+  });
+
+  it('puts the image between the color and the strokes', () => {
+    const svg = toSVG(doc([line]), {
+      backgroundColor: '#FFFFFFFF',
+      backgroundImage: { uri: 'file:///a.png', fit: 'contain' },
+    });
+    expect(svg.indexOf('<rect')).toBeLessThan(svg.indexOf('<image'));
+    expect(svg.indexOf('<image')).toBeLessThan(svg.indexOf('<path'));
+  });
+
+  it('keeps the image in place when trimming', () => {
+    const svg = toSVG(doc([line]), {
+      trim: true,
+      backgroundImage: { uri: 'file:///a.png', fit: 'contain' },
+    });
+    expect(svg).toContain('viewBox="8 8 44 4"');
+    expect(svg).toContain('x="0" y="0" width="300" height="200" preserveAspectRatio');
+  });
+
   it('rejects trimming an empty canvas', () => {
     let error: unknown;
     try {

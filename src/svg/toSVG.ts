@@ -2,11 +2,21 @@ import { hexToRgba } from '../color';
 import type { InkDocument } from '../document';
 import { ErrorCode, InkpadError } from '../errors';
 import { boundsOf } from '../geometry/bounds';
+import type { BackgroundFit } from '../geometry/fit';
 import { fmt, outlinePath, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
 import type { Trim } from '../types';
 
-export type SvgRenderOptions = { trim?: Trim; backgroundColor?: string };
+export type SvgRenderOptions = {
+  trim?: Trim;
+  backgroundColor?: string;
+  backgroundImage?: { uri: string; fit: BackgroundFit };
+};
+
+const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+const escapeXml = (text: string) =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export function toSVG(doc: InkDocument, options: SvgRenderOptions = {}): string {
   const strokes = doc.strokes.map((stroke) => ({ stroke, points: widthPoints(stroke) }));
@@ -31,6 +41,13 @@ export function toSVG(doc: InkDocument, options: SvgRenderOptions = {}): string 
         `<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(width)}" height="${fmt(height)}" fill="rgb(${r},${g},${b})" fill-opacity="${fmt(a)}"/>`,
       );
     }
+  }
+  const image = options.backgroundImage;
+  if (image && HAS_SCHEME.test(image.uri)) {
+    const aspect = image.fit === 'cover' ? 'slice' : 'meet';
+    body.push(
+      `<image href="${escapeXml(image.uri)}" x="0" y="0" width="${fmt(doc.size.width)}" height="${fmt(doc.size.height)}" preserveAspectRatio="xMidYMid ${aspect}"/>`,
+    );
   }
   for (const { stroke, points } of strokes) {
     const { r, g, b, alpha, multiply } = strokePaint(stroke.brush);
