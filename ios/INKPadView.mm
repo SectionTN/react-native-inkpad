@@ -8,6 +8,7 @@
 #import <react/renderer/components/InkpadViewSpec/Props.h>
 #import <react/renderer/components/InkpadViewSpec/RCTComponentViewHelpers.h>
 
+#import "INKBackgroundLoader.h"
 #import "INKBrushes.h"
 #import "INKCanvasView.h"
 #import "INKColor.h"
@@ -33,7 +34,15 @@ static NSString *INKInputName(UITouchType type)
 }
 
 @implementation INKPadView {
+  UIView *_container;
+  UIImageView *_imageView;
   INKCanvasView *_canvas;
+  UIImage *_backgroundImage;
+  NSString *_imageURI;
+  NSUInteger _imageToken;
+  BOOL _imageLoading;
+  BOOL _coverFit;
+  NSMutableArray<dispatch_block_t> *_afterImageLoad;
   INKBrushType _brushType;
   UIColor *_brushColor;
   CGFloat _brushSize;
@@ -62,8 +71,17 @@ static NSString *INKInputName(UITouchType type)
     _brushColor = UIColor.blackColor;
     _brushSize = 3;
     _brushes = [NSMutableDictionary new];
+    _afterImageLoad = [NSMutableArray new];
 
-    _canvas = [[INKCanvasView alloc] initWithFrame:frame];
+    _container = [[UIView alloc] initWithFrame:frame];
+    _imageView = [[UIImageView alloc] initWithFrame:_container.bounds];
+    _imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    _imageView.contentMode = UIViewContentModeScaleAspectFit;
+    _imageView.clipsToBounds = YES;
+    [_container addSubview:_imageView];
+
+    _canvas = [[INKCanvasView alloc] initWithFrame:_container.bounds];
+    _canvas.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _canvas.delegate = self;
     _canvas.drawingPolicy = PKCanvasViewDrawingPolicyAnyInput;
     _canvas.backgroundColor = UIColor.clearColor;
@@ -72,8 +90,9 @@ static NSString *INKInputName(UITouchType type)
     // PencilKit shows black ink as white in dark mode. The canvas keeps the colors it was given.
     _canvas.overrideUserInterfaceStyle = UIUserInterfaceStyleLight;
     [self applyTool];
+    [_container addSubview:_canvas];
 
-    self.contentView = _canvas;
+    self.contentView = _container;
   }
   return self;
 }
@@ -94,8 +113,15 @@ static NSString *INKInputName(UITouchType type)
   }
   _brushColor = RCTUIColorFromSharedColor(newProps.brushColor) ?: UIColor.blackColor;
   _brushSize = newProps.brushSize;
-  _canvas.backgroundColor = RCTUIColorFromSharedColor(newProps.canvasColor) ?: UIColor.clearColor;
+  _container.backgroundColor = RCTUIColorFromSharedColor(newProps.canvasColor) ?: UIColor.clearColor;
   _canvas.drawingGestureRecognizer.enabled = newProps.editable;
+  _coverFit = newProps.backgroundFit == InkpadViewBackgroundFit::Cover;
+  _imageView.contentMode = _coverFit ? UIViewContentModeScaleAspectFill : UIViewContentModeScaleAspectFit;
+  NSString *imageURI =
+      newProps.backgroundImageUri.empty() ? nil : [NSString stringWithUTF8String:newProps.backgroundImageUri.c_str()];
+  if (imageURI != _imageURI && ![imageURI isEqualToString:_imageURI]) {
+    [self loadBackground:imageURI];
+  }
   _canvas.drawingPolicy = newProps.inputMode == InkpadViewInputMode::Stylus ? PKCanvasViewDrawingPolicyPencilOnly
                                                                             : PKCanvasViewDrawingPolicyAnyInput;
   _erasing = newProps.tool == InkpadViewTool::Erase;
@@ -130,12 +156,48 @@ static NSString *INKInputName(UITouchType type)
     return;
   }
   RCTCornerInsets insets = RCTGetCornerInsets(cornerRadii, RCTUIEdgeInsetsFromEdgeInsets(metrics.borderWidths));
-  CGRect paddingBox = [self convertRect:RCTCGRectFromRect(_layoutMetrics.getPaddingFrame()) toView:_canvas];
+  CGRect paddingBox = [self convertRect:RCTCGRectFromRect(_layoutMetrics.getPaddingFrame()) toView:_container];
   CGPathRef path = RCTPathCreateWithRoundedRect(paddingBox, insets, NULL, NO);
   CAShapeLayer *mask = [CAShapeLayer layer];
   mask.path = path;
   CGPathRelease(path);
-  _canvas.layer.mask = mask;
+  _container.layer.mask = mask;
+}
+
+- (void)loadBackground:(NSString *)uri
+{
+  _imageURI = uri;
+  NSUInteger token = ++_imageToken;
+  if (uri == nil) {
+    [self showBackgroundImage:nil];
+    return;
+  }
+  _imageLoading = YES;
+  __weak INKPadView *weakSelf = self;
+  [INKBackgroundLoader loadURI:uri
+                    completion:^(UIImage *image, NSString *message) {
+                      INKPadView *view = weakSelf;
+                      if (view == nil || token != view->_imageToken) {
+                        return;
+                      }
+                      [view showBackgroundImage:image];
+                      if (message != nil) {
+                        [view emitError:@"E_IMAGE_LOAD" message:message];
+                      }
+                    }];
+}
+
+// Exports that waited for the load run once the image is in place, or known to be missing.
+- (void)showBackgroundImage:(UIImage *)image
+{
+  _backgroundImage = image;
+  _imageView.image = image;
+  _imageLoading = NO;
+  NSArray<dispatch_block_t> *waiting = _afterImageLoad;
+  _afterImageLoad = [NSMutableArray new];
+  for (dispatch_block_t block in waiting) {
+    block();
+  }
 }
 
 - (void)applyTool
@@ -204,9 +266,17 @@ static NSString *INKInputName(UITouchType type)
 - (void)exportImage:(NSInteger)requestId optionsJson:(NSString *)optionsJson
 {
   __weak INKPadView *weakSelf = self;
+  if (_imageLoading) {
+    [_afterImageLoad addObject:^{
+      [weakSelf exportImage:requestId optionsJson:optionsJson];
+    }];
+    return;
+  }
   [INKImageExporter exportDrawing:_canvas.drawing
                        canvasSize:self.bounds.size
-                      canvasColor:_canvas.backgroundColor ?: UIColor.clearColor
+                      canvasColor:_container.backgroundColor ?: UIColor.clearColor
+                  backgroundImage:_backgroundImage
+                            cover:_coverFit
                       optionsJSON:optionsJson
                        completion:^(NSString *json, NSString *errorCode, NSString *message) {
                          dispatch_async(dispatch_get_main_queue(), ^{
@@ -240,6 +310,17 @@ static NSString *INKInputName(UITouchType type)
   event.errorCode = std::string(errorCode.UTF8String);
   event.errorMessage = std::string(message.UTF8String);
   std::static_pointer_cast<const InkpadViewEventEmitter>(_eventEmitter)->onInkResult(event);
+}
+
+- (void)emitError:(NSString *)code message:(NSString *)message
+{
+  if (!_eventEmitter) {
+    return;
+  }
+  InkpadViewEventEmitter::OnInkError event;
+  event.code = std::string(code.UTF8String);
+  event.message = std::string(message.UTF8String);
+  std::static_pointer_cast<const InkpadViewEventEmitter>(_eventEmitter)->onInkError(event);
 }
 
 - (void)canvasViewDidBeginUsingTool:(PKCanvasView *)canvasView

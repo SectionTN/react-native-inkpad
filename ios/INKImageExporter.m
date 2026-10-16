@@ -1,10 +1,22 @@
 #import "INKImageExporter.h"
 
+CGRect INKFitRect(CGSize image, CGSize box, BOOL cover)
+{
+  CGFloat sx = image.width > 0 ? box.width / image.width : 0;
+  CGFloat sy = image.height > 0 ? box.height / image.height : 0;
+  CGFloat scale = cover ? MAX(sx, sy) : MIN(sx, sy);
+  CGFloat width = image.width * scale;
+  CGFloat height = image.height * scale;
+  return CGRectMake((box.width - width) / 2, (box.height - height) / 2, width, height);
+}
+
 @implementation INKImageExporter
 
 + (void)exportDrawing:(PKDrawing *)drawing
            canvasSize:(CGSize)canvasSize
           canvasColor:(UIColor *)canvasColor
+      backgroundImage:(UIImage *)backgroundImage
+                cover:(BOOL)cover
           optionsJSON:(NSString *)optionsJSON
            completion:(INKExportCompletion)completion
 {
@@ -50,6 +62,17 @@
       if (background && CGColorGetAlpha(canvasColor.CGColor) > 0) {
         [canvasColor setFill];
         [context fillRect:bounds];
+      }
+      if (background && backgroundImage != nil) {
+        CGRect fit = INKFitRect(backgroundImage.size, canvasSize, cover);
+        CGRect canvasRect = CGRectMake(-area.origin.x * scale, -area.origin.y * scale, canvasSize.width * scale,
+                                       canvasSize.height * scale);
+        CGRect target = CGRectMake((fit.origin.x - area.origin.x) * scale, (fit.origin.y - area.origin.y) * scale,
+                                   fit.size.width * scale, fit.size.height * scale);
+        CGContextSaveGState(context.CGContext);
+        CGContextClipToRect(context.CGContext, canvasRect);
+        [backgroundImage drawInRect:target];
+        CGContextRestoreGState(context.CGContext);
       }
       [strokes drawInRect:bounds];
     }];
