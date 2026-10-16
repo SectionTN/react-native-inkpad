@@ -1,6 +1,7 @@
 package me.sectiontn.inkpad
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -22,6 +23,8 @@ import com.facebook.react.uimanager.BackgroundStyleApplicator
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
 import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.FutureTask
 
 @SuppressLint("ViewConstructor")
 class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(reactContext) {
@@ -43,7 +46,21 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   internal var erasing = false
   internal var inputMode = InputMode.ANY
   internal var backgroundFit = BackgroundFit.CONTAIN
+    set(value) {
+      field = value
+      strokesView.backgroundFit = value
+      strokesView.invalidate()
+    }
   internal var backgroundImageUri: String? = null
+    set(value) {
+      val uri = value?.takeIf { it.isNotEmpty() }
+      if (uri == field) return
+      field = uri
+      loadBackground(uri)
+    }
+  internal var imageLoad: Future<Bitmap?>? = null
+    private set
+  private var imageGeneration = 0
   private var eraserLast: ImmutableVec? = null
   private var eraseBefore: List<InkpadStroke>? = null
   internal var canvasColor = Color.TRANSPARENT
@@ -180,6 +197,39 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     emitChange()
   }
 
+  private fun loadBackground(uri: String?) {
+    val generation = ++imageGeneration
+    if (uri == null) {
+      imageLoad = null
+      strokesView.backgroundImage = null
+      strokesView.invalidate()
+      return
+    }
+    val load = FutureTask {
+      val result = runCatching { BackgroundLoader.load(reactContext, uri) }
+      post { finishBackground(generation, result) }
+      result.getOrNull()
+    }
+    imageLoad = load
+    LOADER.execute(load)
+  }
+
+  private fun finishBackground(generation: Int, result: Result<Bitmap>) {
+    if (generation != imageGeneration) return
+    strokesView.backgroundImage = result.getOrNull()
+    strokesView.invalidate()
+    result.exceptionOrNull()?.let { error ->
+      val message = error.message ?: "could not load the background image $backgroundImageUri"
+      emit(
+        "topInkError",
+        Arguments.createMap().apply {
+          putString("code", ErrorCodes.IMAGE_LOAD)
+          putString("message", message)
+        },
+      )
+    }
+  }
+
   internal fun emitChange() {
     emit(
       "topInkChange",
@@ -291,5 +341,6 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
   companion object {
     private const val ERASER_RADIUS = 10f
     private val EXPORTER = Executors.newSingleThreadExecutor()
+    private val LOADER = Executors.newCachedThreadPool()
   }
 }
