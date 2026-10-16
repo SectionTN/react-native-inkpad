@@ -26,11 +26,13 @@ import { type InkLike, InkTrail } from './web/inkTrail';
 import {
   acceptsPointer,
   appendPoint,
+  blocksTouch,
   inputOf,
   pointOf,
   predictedOf,
   type StrokeOrigin,
   samplesOf,
+  touchActionFor,
 } from './web/pointer';
 import { drawBackground, drawBackgroundImage, drawStroke, drawStrokes } from './web/render';
 
@@ -73,6 +75,7 @@ class Surface {
   mounted = false;
   private readonly history = new StrokeHistory();
   private gesture: Gesture | null = null;
+  private penDown = false;
   private frame = 0;
   private trail: InkTrail | null = null;
   private bottom: HTMLCanvasElement | null = null;
@@ -98,6 +101,8 @@ class Surface {
     top.addEventListener('pointermove', this.move);
     top.addEventListener('pointerup', this.up);
     top.addEventListener('pointercancel', this.cancel);
+    top.addEventListener('touchstart', this.touch, { passive: false });
+    top.addEventListener('touchmove', this.touch, { passive: false });
     top.addEventListener('contextmenu', this.menu);
     const observer = new ResizeObserver(() => this.resize());
     observer.observe(bottom);
@@ -108,6 +113,8 @@ class Surface {
       top.removeEventListener('pointermove', this.move);
       top.removeEventListener('pointerup', this.up);
       top.removeEventListener('pointercancel', this.cancel);
+      top.removeEventListener('touchstart', this.touch);
+      top.removeEventListener('touchmove', this.touch);
       top.removeEventListener('contextmenu', this.menu);
       observer.disconnect();
       cancelAnimationFrame(this.frame);
@@ -242,6 +249,7 @@ class Surface {
   }
 
   private readonly down = (event: PointerEvent): void => {
+    if (event.pointerType === 'pen') this.penDown = true;
     const live = this.live.current;
     const top = this.top;
     if (!top || !live.editable) return;
@@ -302,6 +310,7 @@ class Surface {
 
   // Pens report pressure 0 on pointerup, so the stroke ends at the last move.
   private readonly up = (event: PointerEvent): void => {
+    if (event.pointerType === 'pen') this.penDown = false;
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     this.gesture = null;
@@ -326,6 +335,7 @@ class Surface {
   };
 
   private readonly cancel = (event: PointerEvent): void => {
+    if (event.pointerType === 'pen') this.penDown = false;
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     this.gesture = null;
@@ -336,6 +346,12 @@ class Surface {
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.clearTop();
+  };
+
+  // touchType is Safari only, so the DOM types leave it out.
+  private readonly touch = (event: TouchEvent): void => {
+    const touches = event.touches as unknown as ArrayLike<{ touchType?: string }>;
+    if (blocksTouch(this.live.current.inputMode, this.penDown, touches)) event.preventDefault();
   };
 
   private readonly menu = (event: Event): void => {
@@ -460,7 +476,7 @@ export function InkCanvas({
         ref={topRef}
         style={{
           ...fill,
-          touchAction: native.editable ? 'none' : 'auto',
+          touchAction: touchActionFor(native.editable, native.inputMode),
           userSelect: 'none',
           WebkitUserSelect: 'none',
           WebkitTouchCallout: 'none',

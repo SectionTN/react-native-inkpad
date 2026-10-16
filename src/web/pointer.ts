@@ -86,3 +86,23 @@ export function acceptsPointer(
   if (mode === 'stylus' && sample.pointerType !== 'pen') return false;
   return active === null && sample.isPrimary && sample.button === 0;
 }
+
+// Browsers pan with a pen too, so stylus mode lets fingers pan and blocks the pen's touches instead.
+export function touchActionFor(editable: boolean, mode: InputMode): string {
+  if (!editable) return 'auto';
+  return mode === 'stylus' ? 'pan-x pan-y pinch-zoom' : 'none';
+}
+
+// Safari marks Pencil touches as stylus; Chrome sends the pen's pointerdown before its touches.
+export function blocksTouch(
+  mode: InputMode,
+  penDown: boolean,
+  touches: ArrayLike<{ touchType?: string }>,
+): boolean {
+  if (mode !== 'stylus') return false;
+  if (penDown) return true;
+  for (let i = 0; i < touches.length; i++) {
+    if (touches[i]?.touchType === 'stylus') return true;
+  }
+  return false;
+}

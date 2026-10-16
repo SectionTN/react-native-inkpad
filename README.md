@@ -77,7 +77,7 @@ export function SignatureField() {
 | --- | --- | --- | --- |
 | `brush` | `{ type, color, size }` | black pen, size 3 | Brush for new strokes. `type` is `'pen'`, `'marker'` or `'highlighter'`. |
 | `tool` | `'draw' \| 'erase'` | `'draw'` | The eraser removes whole strokes. |
-| `inputMode` | `'any' \| 'stylus'` | `'any'` | With `'stylus'`, only a pen draws and fingers go to the parent. On web, fingers don't scroll over the canvas. |
+| `inputMode` | `'any' \| 'stylus'` | `'any'` | With `'stylus'`, only a pen draws and fingers go to the parent. |
 | `editable` | `boolean` | `true` | Set to `false` to turn drawing off. |
 | `background` | `{ color, image, fit }` | transparent | Canvas color and an image under the ink, both exported. `image` takes an image source, `fit` is `'contain'` or `'cover'`. On web, an image from another origin needs CORS headers. |
 | `onStrokeStart` | `() => void` | | Called when a stroke starts. |

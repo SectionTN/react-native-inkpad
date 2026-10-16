@@ -3,11 +3,13 @@ import { validateDocument } from '../document';
 import {
   acceptsPointer,
   appendPoint,
+  blocksTouch,
   inputOf,
   type PointerSample,
   pointOf,
   predictedOf,
   samplesOf,
+  touchActionFor,
 } from '../web/pointer';
 
 const origin = { left: 100, top: 200, startTime: 1000 };
@@ -110,5 +112,23 @@ describe('pointer', () => {
     for (const type of ['pen', 'touch', 'mouse']) {
       expect(acceptsPointer(null, down(type), 'any')).toBe(true);
     }
+  });
+});
+
+describe('stylus mode scrolling', () => {
+  it('lets fingers pan only in stylus mode', () => {
+    expect(touchActionFor(true, 'any')).toBe('none');
+    expect(touchActionFor(true, 'stylus')).toBe('pan-x pan-y pinch-zoom');
+    expect(touchActionFor(false, 'stylus')).toBe('auto');
+  });
+
+  it('stops a pen from panning in stylus mode', () => {
+    const finger = [{ touchType: 'direct' }];
+    const pencil = [{ touchType: 'stylus' }];
+    expect(blocksTouch('stylus', false, pencil)).toBe(true);
+    expect(blocksTouch('stylus', true, [{}])).toBe(true);
+    expect(blocksTouch('stylus', false, finger)).toBe(false);
+    expect(blocksTouch('stylus', false, [{}])).toBe(false);
+    expect(blocksTouch('any', true, pencil)).toBe(false);
   });
 });
