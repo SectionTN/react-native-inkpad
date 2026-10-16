@@ -1,4 +1,5 @@
 import { type InputType, POINT_STRIDE } from '../document';
+import type { InputMode } from '../types';
 
 export type PointerSample = {
   pointerId: number;
@@ -79,7 +80,9 @@ export function predictedOf<T>(event: T & { getPredictedEvents?: () => T[] }): T
 
 export function acceptsPointer(
   active: number | null,
-  sample: Pick<PointerSample, 'isPrimary' | 'button'>,
+  sample: Pick<PointerSample, 'isPrimary' | 'button' | 'pointerType'>,
+  mode: InputMode = 'any',
 ): boolean {
+  if (mode === 'stylus' && sample.pointerType !== 'pen') return false;
   return active === null && sample.isPrimary && sample.button === 0;
 }

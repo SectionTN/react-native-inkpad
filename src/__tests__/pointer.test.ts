@@ -95,9 +95,20 @@ describe('pointer', () => {
   });
 
   it('starts a stroke only for an idle, primary, main-button pointer', () => {
-    expect(acceptsPointer(null, { isPrimary: true, button: 0 })).toBe(true);
-    expect(acceptsPointer(3, { isPrimary: true, button: 0 })).toBe(false);
-    expect(acceptsPointer(null, { isPrimary: false, button: 0 })).toBe(false);
-    expect(acceptsPointer(null, { isPrimary: true, button: 5 })).toBe(false);
+    const touch = { pointerType: 'touch', isPrimary: true, button: 0 };
+    expect(acceptsPointer(null, touch)).toBe(true);
+    expect(acceptsPointer(3, touch)).toBe(false);
+    expect(acceptsPointer(null, { ...touch, isPrimary: false })).toBe(false);
+    expect(acceptsPointer(null, { ...touch, button: 5 })).toBe(false);
+  });
+
+  it('starts a stroke only from a pen in stylus mode', () => {
+    const down = (pointerType: string) => ({ pointerType, isPrimary: true, button: 0 });
+    expect(acceptsPointer(null, down('pen'), 'stylus')).toBe(true);
+    expect(acceptsPointer(null, down('touch'), 'stylus')).toBe(false);
+    expect(acceptsPointer(null, down('mouse'), 'stylus')).toBe(false);
+    for (const type of ['pen', 'touch', 'mouse']) {
+      expect(acceptsPointer(null, down(type), 'any')).toBe(true);
+    }
   });
 });

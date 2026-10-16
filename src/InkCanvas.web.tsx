@@ -17,7 +17,7 @@ import { type Vec, widthPoints } from './geometry/outline';
 import { toNativeImageOptions } from './imageOptions';
 import { toNativeInkProps } from './nativeProps';
 import { toSVG } from './svg/toSVG';
-import type { InkCanvasProps, InkState } from './types';
+import type { InkCanvasProps, InkState, InputMode } from './types';
 import { exportImage } from './web/exportImage';
 import { StrokeHistory } from './web/history';
 import { type InkLike, InkTrail } from './web/inkTrail';
@@ -37,6 +37,7 @@ type Live = {
   brushHex: string;
   brushSize: number;
   tool: 'draw' | 'erase';
+  inputMode: InputMode;
   editable: boolean;
   onStrokeStart?: () => void;
   onStrokeEnd?: () => void;
@@ -216,7 +217,8 @@ class Surface {
   private readonly down = (event: PointerEvent): void => {
     const live = this.live.current;
     const top = this.top;
-    if (!top || !live.editable || !acceptsPointer(this.gesture?.pointerId ?? null, event)) return;
+    if (!top || !live.editable) return;
+    if (!acceptsPointer(this.gesture?.pointerId ?? null, event, live.inputMode)) return;
     top.setPointerCapture(event.pointerId);
     const rect = top.getBoundingClientRect();
     const origin = { left: rect.left, top: rect.top, startTime: event.timeStamp };
@@ -342,6 +344,7 @@ export function InkCanvas({
     brushHex: hexOf(native.brushColor) ?? '#000000FF',
     brushSize: native.brushSize,
     tool: native.tool,
+    inputMode: native.inputMode,
     editable: native.editable,
     onStrokeStart,
     onStrokeEnd,
