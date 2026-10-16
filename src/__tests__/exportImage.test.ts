@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { InkDocument, InkStroke } from '../document';
 import type { NativeImageOptions } from '../imageOptions';
+import type { ImageLike } from '../web/backgroundImage';
 import { type ExportCanvas, type ExportDeps, exportArea, exportImage } from '../web/exportImage';
 import type { MakePath } from '../web/render';
 
@@ -32,6 +33,10 @@ let calls: Call[];
 let urls: number;
 
 const fakePath: MakePath = (d) => ({ d }) as unknown as Path2D;
+const paper = {
+  image: { naturalWidth: 200, naturalHeight: 100 } as ImageLike,
+  fit: 'contain' as const,
+};
 const fakeCanvas = (blob: Blob | null): ExportCanvas => {
   const state = {
     fillStyle: '' as unknown,
@@ -49,6 +54,10 @@ const fakeCanvas = (blob: Blob | null): ExportCanvas => {
     setTransform: record('setTransform'),
     fillRect: record('fillRect'),
     fill: record('fill'),
+    beginPath() {},
+    rect() {},
+    clip: record('clip'),
+    drawImage: (_image: unknown, ...args: unknown[]) => record('drawImage')(...args),
   }) as unknown as CanvasRenderingContext2D;
   return {
     width: 0,
@@ -150,5 +159,44 @@ describe('exportImage', () => {
     await expect(exportImage(doc([line]), opts({}), undefined, failingDeps)).rejects.toMatchObject({
       code: 'E_EXPORT_FAILED',
     });
+  });
+
+  it('draws the image between the color and the strokes', async () => {
+    await exportImage(doc([line]), opts({}), '#FFFFFFFF', deps, paper);
+    expect(calls.map((call) => call.op)).toEqual([
+      'fillRect',
+      'setTransform',
+      'clip',
+      'drawImage',
+      'fill',
+    ]);
+    expect(calls.find((call) => call.op === 'drawImage')?.args).toEqual([0, 25, 300, 150]);
+  });
+
+  it('leaves the image out without the background', async () => {
+    await exportImage(doc([line]), opts({ background: false }), '#FFFFFFFF', deps, paper);
+    expect(calls.some((call) => call.op === 'drawImage')).toBe(false);
+  });
+
+  it('draws the image under the trim transform', async () => {
+    await exportImage(doc([line]), opts({ trim: true, scale: 3 }), undefined, deps, paper);
+    const ops = calls.map((call) => call.op);
+    expect(ops.indexOf('setTransform')).toBeLessThan(ops.indexOf('drawImage'));
+    expect(calls.find((call) => call.op === 'drawImage')?.args).toEqual([0, 25, 300, 150]);
+  });
+
+  it('names CORS when the browser blocks a tainted export', async () => {
+    const tainted: ExportDeps = {
+      ...deps,
+      createCanvas: () => ({
+        ...fakeCanvas({} as Blob),
+        toBlob: () => {
+          throw new DOMException('tainted', 'SecurityError');
+        },
+      }),
+    };
+    const result = exportImage(doc([line]), opts({}), undefined, tainted, paper);
+    await expect(result).rejects.toMatchObject({ code: 'E_EXPORT_FAILED' });
+    await expect(result).rejects.toThrow(/CORS/);
   });
 });

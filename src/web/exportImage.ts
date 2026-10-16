@@ -1,10 +1,12 @@
 import type { InkDocument } from '../document';
 import { ErrorCode, InkpadError } from '../errors';
 import { boundsOf } from '../geometry/bounds';
+import type { BackgroundFit } from '../geometry/fit';
 import { widthPoints } from '../geometry/outline';
 import type { NativeImageOptions } from '../imageOptions';
 import type { ImageResult } from '../types';
-import { drawBackground, drawStrokes, type MakePath } from './render';
+import type { ImageLike } from './backgroundImage';
+import { drawBackground, drawBackgroundImage, drawStrokes, type MakePath } from './render';
 
 export type ExportArea = {
   x: number;
@@ -30,6 +32,18 @@ export type ExportDeps = {
 };
 
 const pixels = (units: number, scale: number) => Math.max(1, Math.round(units * scale));
+
+async function guardTaint<T>(read: () => Promise<T>): Promise<T> {
+  try {
+    return await read();
+  } catch (error) {
+    if ((error as { name?: string })?.name !== 'SecurityError') throw error;
+    throw new InkpadError(
+      ErrorCode.EXPORT_FAILED,
+      'the browser blocked the export: the background image comes from another origin without CORS headers',
+    );
+  }
+}
 
 export function exportArea(doc: InkDocument, options: NativeImageOptions): ExportArea {
   let x = 0;
@@ -58,6 +72,7 @@ export async function exportImage(
   options: NativeImageOptions,
   backgroundColor: string | undefined,
   deps: ExportDeps,
+  backgroundImage?: { image: ImageLike; fit: BackgroundFit },
 ): Promise<ImageResult> {
   const area = exportArea(doc, options);
   const canvas = deps.createCanvas();
@@ -70,10 +85,15 @@ export async function exportImage(
   if (options.background) drawBackground(ctx, backgroundColor, area.pixelWidth, area.pixelHeight);
   const { scale } = options;
   ctx.setTransform(scale, 0, 0, scale, -area.x * scale, -area.y * scale);
+  if (options.background && backgroundImage) {
+    drawBackgroundImage(ctx, backgroundImage.image, doc.size, backgroundImage.fit);
+  }
   drawStrokes(ctx, doc.strokes, deps.makePath);
   const type = options.format === 'jpeg' ? 'image/jpeg' : 'image/png';
   const quality = options.format === 'jpeg' ? options.quality : undefined;
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality));
+  const blob = await guardTaint(
+    () => new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, type, quality)),
+  );
   if (!blob)
     throw new InkpadError(ErrorCode.EXPORT_FAILED, 'the browser could not encode the image');
   const result: ImageResult = {
@@ -82,7 +102,7 @@ export async function exportImage(
     height: area.pixelHeight,
   };
   if (options.base64) {
-    const dataUrl = canvas.toDataURL(type, quality);
+    const dataUrl = await guardTaint(async () => canvas.toDataURL(type, quality));
     result.base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
   }
   return result;

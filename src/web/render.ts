@@ -1,7 +1,9 @@
 import { hexToRgba } from '../color';
 import type { InkStroke } from '../document';
+import { type BackgroundFit, fitRect, type Size } from '../geometry/fit';
 import { outlinePath, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
+import type { ImageLike } from './backgroundImage';
 
 export type MakePath = (d: string) => Path2D;
 
@@ -42,4 +44,20 @@ export function drawStrokes(
   makePath: MakePath = newPath,
 ): void {
   for (const stroke of strokes) drawStroke(ctx, stroke, makePath);
+}
+
+export function drawBackgroundImage(
+  ctx: CanvasRenderingContext2D,
+  image: ImageLike | null,
+  size: Size,
+  fit: BackgroundFit,
+): void {
+  if (!image) return;
+  const rect = fitRect({ width: image.naturalWidth, height: image.naturalHeight }, size, fit);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, size.width, size.height);
+  ctx.clip();
+  ctx.drawImage(image as unknown as CanvasImageSource, rect.x, rect.y, rect.width, rect.height);
+  ctx.restore();
 }

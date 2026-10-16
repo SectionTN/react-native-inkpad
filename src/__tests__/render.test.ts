@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { InkStroke } from '../document';
 import { outlinePath, widthPoints } from '../geometry/outline';
-import { drawBackground, drawStroke, drawStrokes, type MakePath } from '../web/render';
+import type { ImageLike } from '../web/backgroundImage';
+import {
+  drawBackground,
+  drawBackgroundImage,
+  drawStroke,
+  drawStrokes,
+  type MakePath,
+} from '../web/render';
 
 type Call = {
   op: string;
@@ -24,6 +31,7 @@ const highlighter: InkStroke = {
   points,
 };
 const fakePath: MakePath = (d) => ({ d }) as unknown as Path2D;
+const image = { naturalWidth: 200, naturalHeight: 100 } as ImageLike;
 
 let calls: Call[];
 let ctx: CanvasRenderingContext2D;
@@ -45,6 +53,14 @@ beforeEach(() => {
     },
     fillRect(...args: number[]) {
       calls.push({ op: 'fillRect', args, ...snapshot() });
+    },
+    beginPath() {},
+    rect() {},
+    clip() {
+      calls.push({ op: 'clip', ...snapshot() });
+    },
+    drawImage(_image: unknown, ...args: number[]) {
+      calls.push({ op: 'drawImage', args, ...snapshot() });
     },
   }) as unknown as CanvasRenderingContext2D;
 });
@@ -83,5 +99,16 @@ describe('render', () => {
       args: [0, 0, 300, 200],
       fillStyle: 'rgba(255,255,255,1)',
     });
+  });
+
+  it('draws the image into its fit rect, clipped to the canvas', () => {
+    drawBackgroundImage(ctx, image, { width: 300, height: 300 }, 'contain');
+    expect(calls.map((call) => call.op)).toEqual(['clip', 'drawImage']);
+    expect(calls[1]?.args).toEqual([0, 75, 300, 150]);
+  });
+
+  it('draws nothing without an image', () => {
+    drawBackgroundImage(ctx, null, { width: 300, height: 300 }, 'contain');
+    expect(calls).toEqual([]);
   });
 });

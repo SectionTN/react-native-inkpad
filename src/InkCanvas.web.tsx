@@ -17,9 +17,11 @@ import { type Vec, widthPoints } from './geometry/outline';
 import { toNativeImageOptions } from './imageOptions';
 import { toNativeInkProps } from './nativeProps';
 import { toSVG } from './svg/toSVG';
-import type { InkCanvasProps, InkState, InputMode } from './types';
+import type { BackgroundFit, InkCanvasProps, InkState, InputMode } from './types';
+import { BackgroundImage } from './web/backgroundImage';
 import { exportImage } from './web/exportImage';
 import { StrokeHistory } from './web/history';
+import { uriOf } from './web/imageSource';
 import { type InkLike, InkTrail } from './web/inkTrail';
 import {
   acceptsPointer,
@@ -30,7 +32,7 @@ import {
   type StrokeOrigin,
   samplesOf,
 } from './web/pointer';
-import { drawBackground, drawStroke, drawStrokes } from './web/render';
+import { drawBackground, drawBackgroundImage, drawStroke, drawStrokes } from './web/render';
 
 type Live = {
   brushType: BrushType;
@@ -76,7 +78,17 @@ class Surface {
   private bottom: HTMLCanvasElement | null = null;
   private top: HTMLCanvasElement | null = null;
 
-  constructor(private readonly live: RefObject<Live>) {}
+  readonly image: BackgroundImage;
+  imageUri: string | undefined;
+  fit: BackgroundFit = 'contain';
+
+  constructor(private readonly live: RefObject<Live>) {
+    this.image = new BackgroundImage(
+      () => new Image(),
+      () => this.redraw(),
+      (error) => this.reportError(error),
+    );
+  }
 
   attach(bottom: HTMLCanvasElement, top: HTMLCanvasElement): () => void {
     this.bottom = bottom;
@@ -110,6 +122,20 @@ class Surface {
   setBackground(hex: string | undefined): void {
     this.background = hex;
     this.redraw();
+  }
+
+  // Expo web serves assets from relative paths; SVG exports need the absolute URL.
+  setImage(uri: string | undefined, fit: BackgroundFit): void {
+    this.imageUri = uri ? new URL(uri, document.baseURI).href : undefined;
+    this.fit = fit;
+    this.image.set(this.imageUri);
+    this.redraw();
+  }
+
+  reportError(error: InkpadError): void {
+    const onError = this.live.current.onError;
+    if (onError) onError(error);
+    else if (__DEV__) console.warn(`react-native-inkpad: ${error.message}`);
   }
 
   document(): InkDocument {
@@ -175,6 +201,7 @@ class Surface {
     const { width, height } = this.size;
     ctx.clearRect(0, 0, width, height);
     drawBackground(ctx, this.background, width, height);
+    drawBackgroundImage(ctx, this.image.current, this.size, this.fit);
     drawStrokes(ctx, this.strokes);
   }
 
@@ -366,6 +393,19 @@ export function InkCanvas({
 
   useEffect(() => surface.setBackground(backgroundHex), [surface, backgroundHex]);
 
+  let imageUri: string | undefined;
+  let imageError: string | undefined;
+  try {
+    imageUri = uriOf(background?.image);
+  } catch (error) {
+    imageError = (error as Error).message;
+  }
+  const imageFit = native.backgroundFit;
+  useEffect(() => surface.setImage(imageUri, imageFit), [surface, imageUri, imageFit]);
+  useEffect(() => {
+    if (imageError) surface.reportError(new InkpadError(ErrorCode.IMAGE_LOAD, imageError));
+  }, [surface, imageError]);
+
   useImperativeHandle(ref, () => {
     const getStrokes = async () => {
       if (!surface.mounted) throw notMounted();
@@ -388,6 +428,7 @@ export function InkCanvas({
           size: { ...surface.size },
           strokes: surface.strokes,
         };
+        const image = await surface.image.ready();
         return exportImage(
           snapshot,
           toNativeImageOptions(options, window.devicePixelRatio || 1),
@@ -396,12 +437,17 @@ export function InkCanvas({
             createCanvas: () => document.createElement('canvas'),
             createObjectURL: (blob) => URL.createObjectURL(blob),
           },
+          image ? { image, fit: surface.fit } : undefined,
         );
       },
       toSVG: async (options = {}) =>
         toSVG(await getStrokes(), {
           trim: options.trim,
           backgroundColor: options.background === false ? undefined : surface.background,
+          backgroundImage:
+            options.background === false || !surface.imageUri
+              ? undefined
+              : { uri: surface.imageUri, fit: surface.fit },
         }),
     };
   }, [surface]);
