@@ -49,3 +49,11 @@ export type DockProps = {
   onSize(size: number): void;
   onExport(): void;
 };
+
+export type ModesProps = {
+  visible: boolean;
+  paper: boolean;
+  pencilOnly: boolean;
+  onPaper(): void;
+  onPencilOnly(): void;
+};

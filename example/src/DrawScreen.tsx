@@ -6,9 +6,17 @@ import { Dock } from './Dock';
 import { ExportSheet } from './ExportSheet';
 import { useTheme } from './theme';
 
-type Props = { canvas: RefObject<InkCanvasRef | null>; onChange(state: InkState): void };
+type Props = {
+  canvas: RefObject<InkCanvasRef | null>;
+  paper: boolean;
+  pencilOnly: boolean;
+  onChange(state: InkState): void;
+  onError(code: string): void;
+};
 
-export function DrawScreen({ canvas, onChange }: Props) {
+const PAPER = require('../assets/paper.png');
+
+export function DrawScreen({ canvas, paper, pencilOnly, onChange, onError }: Props) {
   const theme = useTheme();
   const [tool, setTool] = useState<Tool>('pen');
   const [color, setColor] = useState(COLORS[0]?.value ?? '#000000');
@@ -22,7 +30,9 @@ export function DrawScreen({ canvas, onChange }: Props) {
         testID="canvas"
         tool={tool === 'eraser' ? 'erase' : 'draw'}
         brush={brushFor(tool, color, size)}
-        background={{ color: '#FFFFFF' }}
+        background={{ color: '#FFFFFF', image: paper ? PAPER : undefined, fit: 'cover' }}
+        inputMode={pencilOnly ? 'stylus' : 'any'}
+        onError={(error) => onError(error.code)}
         style={[styles.canvas, { borderColor: theme.separator }]}
         onChange={onChange}
       />

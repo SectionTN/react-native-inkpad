@@ -1,7 +1,7 @@
 import { Host, Switch } from '@expo/ui';
-import { type ReactNode, useState } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import SignatureCanvas from 'react-native-inkpad/signature-canvas';
+import { type ReactNode, useRef, useState } from 'react';
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import SignatureCanvas, { type SignatureViewRef } from 'react-native-inkpad/signature-canvas';
 import { type Theme, useTheme } from './theme';
 
 const WAITING = 'Waiting for a signature';
@@ -14,6 +14,8 @@ export function SignScreen() {
   const [undamaged, setUndamaged] = useState(true);
   const [status, setStatus] = useState(WAITING);
   const [signature, setSignature] = useState<string | null>(null);
+  const [lastSignature, setLastSignature] = useState<string | null>(null);
+  const pad = useRef<SignatureViewRef>(null);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -34,12 +36,14 @@ export function SignScreen() {
       <Heading theme={theme}>Signature</Heading>
       <View style={[styles.group, styles.pad]}>
         <SignatureCanvas
+          ref={pad}
           testID="signature-pad"
           penColor="#1A2B4C"
           descriptionText="Sign above"
           trimWhitespace
           onOK={(data) => {
             setSignature(data);
+            setLastSignature(data);
             setStatus('Confirmed');
           }}
           onEmpty={() => {
@@ -74,6 +78,19 @@ export function SignScreen() {
             </Text>
           ) : null}
         </View>
+        {lastSignature ? (
+          <Pressable
+            testID="restore-signature"
+            role="button"
+            onPress={() => {
+              pad.current?.setDataURL(lastSignature);
+              setStatus('Restored');
+            }}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <Text style={[styles.restore, { color: theme.accent }]}>Restore</Text>
+          </Pressable>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -127,5 +144,7 @@ const styles = StyleSheet.create({
   thumb: { width: 116, height: 58, borderRadius: 10, backgroundColor: '#FFFFFF' },
   resultText: { flex: 1, gap: 2 },
   status: { fontSize: 15, fontWeight: '600' },
+  restore: { fontSize: 15, fontWeight: '600' },
+  pressed: { opacity: 0.5 },
   data: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }), fontSize: 11 },
 });

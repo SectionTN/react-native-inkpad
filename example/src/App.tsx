@@ -6,6 +6,7 @@ import type { InkCanvasRef, InkState } from 'react-native-inkpad';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { sample } from './controls';
 import { DrawScreen } from './DrawScreen';
+import { Modes } from './Modes';
 import { SignScreen } from './SignScreen';
 import { Toolbar } from './Toolbar';
 import { useTheme } from './theme';
@@ -26,8 +27,14 @@ function Main() {
   const canvas = useRef<InkCanvasRef>(null);
   const [ink, setInk] = useState<InkState>({ strokeCount: 0, canUndo: false, canRedo: false });
   const [tab, setTab] = useState(0);
+  const [paper, setPaper] = useState(false);
+  const [pencilOnly, setPencilOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const drawing = tab === 0;
   const strokes = `${ink.strokeCount} ${ink.strokeCount === 1 ? 'stroke' : 'strokes'}`;
+  const status = [ENGINE, strokes, paper && 'paper', pencilOnly && 'pencil only', error]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <View
@@ -48,10 +55,22 @@ function Main() {
         onClear={() => canvas.current?.clear()}
       />
       <View style={styles.heading}>
-        <Text style={[styles.title, { color: theme.text }]}>Inkpad</Text>
-        <Text testID="status" style={[styles.subtitle, { color: theme.secondaryText }]}>
-          {drawing ? `${ENGINE} · ${strokes}` : 'signature-canvas adapter'}
-        </Text>
+        <View style={styles.headingText}>
+          <Text style={[styles.title, { color: theme.text }]}>Inkpad</Text>
+          <Text testID="status" style={[styles.subtitle, { color: theme.secondaryText }]}>
+            {drawing ? status : 'signature-canvas adapter'}
+          </Text>
+        </View>
+        <Modes
+          visible={drawing}
+          paper={paper}
+          pencilOnly={pencilOnly}
+          onPaper={() => {
+            setError(null);
+            setPaper((on) => !on);
+          }}
+          onPencilOnly={() => setPencilOnly((on) => !on)}
+        />
       </View>
       <SegmentedControl
         values={['Draw', 'Sign']}
@@ -60,7 +79,13 @@ function Main() {
         style={styles.tabs}
       />
       <View style={[styles.page, !drawing && styles.hidden]}>
-        <DrawScreen canvas={canvas} onChange={setInk} />
+        <DrawScreen
+          canvas={canvas}
+          paper={paper}
+          pencilOnly={pencilOnly}
+          onChange={setInk}
+          onError={(code) => setError(code)}
+        />
       </View>
       <View style={[styles.page, drawing && styles.hidden]}>
         <SignScreen />
@@ -71,7 +96,8 @@ function Main() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  heading: { paddingHorizontal: 20, gap: 2 },
+  heading: { paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headingText: { flex: 1, gap: 2 },
   title: Platform.select({
     ios: { fontSize: 34, fontWeight: '700', letterSpacing: 0.3 },
     default: { fontSize: 32 },
