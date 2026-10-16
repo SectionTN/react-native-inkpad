@@ -4,7 +4,15 @@ import { argbToHex } from '../color';
 import { InkCanvas } from '../InkCanvas';
 import type { InkCanvasRef } from '../types';
 import { CHECK_ICON, TRASH_ICON } from './icons';
-import { asciiToBase64, dataUrl, exportFormat, footerHidden, unsupportedProps } from './mapProps';
+import {
+  asciiToBase64,
+  backgroundBox,
+  dataUrl,
+  exportFormat,
+  footerHidden,
+  readPlan,
+  unsupportedProps,
+} from './mapProps';
 import { documentToPointGroups, pointGroupsToDocument } from './signaturePadData';
 import type { SignatureCanvasProps, SignatureViewRef } from './types';
 
@@ -27,10 +35,13 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
   const [penColor, setPenColor] = useState(props.penColor);
   const [penSize, setPenSize] = useState(props.maxWidth);
   const [erasing, setErasing] = useState(false);
+  const [startImage, setStartImage] = useState(props.dataURL || undefined);
   const format = exportFormat(props.imageType);
+  const bgBox = backgroundBox(props.bgWidth, props.bgHeight);
 
   useEffect(() => setPenColor(props.penColor), [props.penColor]);
   useEffect(() => setPenSize(props.maxWidth), [props.maxWidth]);
+  useEffect(() => setStartImage(props.dataURL || undefined), [props.dataURL]);
 
   useEffect(() => {
     const first = mountProps.current;
@@ -42,16 +53,17 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
   const readSignature = async () => {
     const canvas = ink.current;
     if (!canvas) return;
-    if (strokeCount.current === 0) {
+    const plan = readPlan(strokeCount.current, startImage !== undefined, props.trimWhitespace);
+    if (plan === 'empty') {
       props.onEmpty?.();
       return;
     }
     try {
       if (format === 'svg') {
-        const svg = await canvas.toSVG({ trim: props.trimWhitespace });
+        const svg = await canvas.toSVG({ trim: plan.trim });
         props.onOK?.(dataUrl('svg', asciiToBase64(svg)));
       } else {
-        const image = await canvas.toImage({ format, trim: props.trimWhitespace, base64: true });
+        const image = await canvas.toImage({ format, trim: plan.trim, base64: true });
         props.onOK?.(dataUrl(format, image.base64 ?? ''));
       }
       if (props.autoClear) canvas.clear();
@@ -66,6 +78,7 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
     },
     clearSignature: () => {
       ink.current?.clear();
+      setStartImage(undefined);
       props.onClear?.();
     },
     undo: () => {
@@ -110,9 +123,13 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
         );
       })().catch((error: Error) => props.onError?.(error));
     },
-    setDataURL: () => warn('setDataURL needs background images, which ship in 0.4'),
+    setDataURL: (url) => {
+      ink.current?.clear();
+      setStartImage(url || undefined);
+    },
     reinitialize: () => {
       ink.current?.clear();
+      setStartImage(undefined);
       setErasing(false);
     },
   };
@@ -122,13 +139,27 @@ export default function SignatureCanvas({ ref, testID, style, ...props }: Signat
   return (
     <View style={[styles.root, style]}>
       <View style={styles.pad}>
+        {props.bgSrc ? (
+          <Image
+            source={{ uri: props.bgSrc }}
+            style={[
+              bgBox ? { position: 'absolute', left: 0, top: 0, ...bgBox } : StyleSheet.absoluteFill,
+              styles.overlay,
+            ]}
+            resizeMode="contain"
+          />
+        ) : null}
         <InkCanvas
           ref={ink}
           testID={testID}
           style={StyleSheet.absoluteFill}
           brush={{ color: penColor ?? 'black', size: penSize ?? 2.5 }}
           tool={erasing ? 'erase' : 'draw'}
-          background={{ color: props.backgroundColor }}
+          background={{
+            color: props.backgroundColor,
+            image: startImage ? { uri: startImage } : undefined,
+          }}
+          onError={props.onError}
           onStrokeStart={props.onBegin}
           onStrokeEnd={props.onEnd}
           onChange={(state) => {

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   asciiToBase64,
+  backgroundBox,
   dataUrl,
   exportFormat,
   footerHidden,
+  readPlan,
   unsupportedProps,
 } from '../compat/mapProps';
 
@@ -21,10 +23,27 @@ describe('mapProps', () => {
   });
 
   it('lists the props it ignores', () => {
-    expect(unsupportedProps({ customHtml: () => '', penColor: 'red', bgSrc: 'x' })).toEqual([
-      'customHtml',
-      'bgSrc',
-    ]);
+    expect(unsupportedProps({ customHtml: () => '', penColor: 'red' })).toEqual(['customHtml']);
+  });
+
+  it('supports the image props now', () => {
+    expect(
+      unsupportedProps({ bgSrc: 'x', dataURL: 'y', bgWidth: 1, bgHeight: 2, minWidth: 1 }),
+    ).toEqual(['minWidth']);
+  });
+
+  it('sizes bgSrc only when both sizes are given', () => {
+    expect(backgroundBox(300, 100)).toEqual({ width: 300, height: 100 });
+    expect(backgroundBox(0, 100)).toBeNull();
+    expect(backgroundBox()).toBeNull();
+  });
+
+  it('plans readSignature around strokes and a restored image', () => {
+    expect(readPlan(0, false, true)).toBe('empty');
+    expect(readPlan(0, true, true)).toEqual({ trim: false });
+    expect(readPlan(2, false, true)).toEqual({ trim: true });
+    expect(readPlan(2, true, true)).toEqual({ trim: false });
+    expect(readPlan(2, false, undefined)).toEqual({ trim: false });
   });
 
   it('builds data URLs and base64 for ASCII', () => {

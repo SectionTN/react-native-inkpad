@@ -13,14 +13,9 @@ export const IGNORED_PROPS = [
   'dotSize',
   'velocityFilterWeight',
   'minWidth',
-  'bgWidth',
-  'bgHeight',
   'overlayWidth',
   'overlayHeight',
 ] as const;
-
-// These need background image support, which ships in 0.4.
-export const LATER_PROPS = ['bgSrc', 'dataURL'] as const;
 
 const FOOTER_HIDDEN = /\.m-signature-pad--footer[^{]*\{[^}]*display\s*:\s*none/i;
 const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -36,8 +31,24 @@ export function footerHidden(webStyle: string | undefined): boolean {
 }
 
 export function unsupportedProps(props: Record<string, unknown>): string[] {
-  const names: readonly string[] = [...IGNORED_PROPS, ...LATER_PROPS];
-  return names.filter((name) => props[name] !== undefined);
+  return IGNORED_PROPS.filter((name) => props[name] !== undefined);
+}
+
+export function backgroundBox(
+  width?: number,
+  height?: number,
+): { width: number; height: number } | null {
+  return width && height && width > 0 && height > 0 ? { width, height } : null;
+}
+
+// A restored dataURL image is content, and trimming to the strokes could cut it off.
+export function readPlan(
+  strokeCount: number,
+  hasImage: boolean,
+  trimWhitespace: boolean | undefined,
+): 'empty' | { trim: boolean } {
+  if (strokeCount === 0 && !hasImage) return 'empty';
+  return { trim: Boolean(trimWhitespace) && !hasImage };
 }
 
 export function dataUrl(format: ExportFormat, base64: string): string {
