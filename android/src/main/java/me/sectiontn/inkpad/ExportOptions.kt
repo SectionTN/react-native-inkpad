@@ -11,6 +11,8 @@ internal class ExportOptions(
   val padding: Float,
   val background: Boolean,
   val base64: Boolean,
+  val backgroundImageUri: String?,
+  val backgroundFit: BackgroundFit?,
 ) {
   fun pixels(units: Float): Int = maxOf(1, (units * scale).roundToInt())
 
@@ -26,6 +28,8 @@ internal class ExportOptions(
         padding = o.optDouble("padding", 0.0).toFloat().coerceAtLeast(0f),
         background = o.optBoolean("background", true),
         base64 = o.optBoolean("base64", false),
+        backgroundImageUri = if (o.has("backgroundImageUri")) o.optString("backgroundImageUri") else null,
+        backgroundFit = BackgroundFit.from(o.optString("backgroundFit")),
       )
     }
   }

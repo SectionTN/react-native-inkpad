@@ -1,4 +1,4 @@
-import type { ImageOptions } from './types';
+import type { BackgroundFit, ImageOptions } from './types';
 
 export type NativeImageOptions = {
   format: 'png' | 'jpeg';
@@ -24,4 +24,13 @@ export function toNativeImageOptions(
     background: options.background ?? true,
     base64: options.base64 ?? false,
   };
+}
+
+// Android runs view commands before pending prop updates, so the export carries the image it expects.
+export function withBackgroundImage(
+  options: NativeImageOptions,
+  uri: string | undefined,
+  fit: BackgroundFit,
+): NativeImageOptions & { backgroundImageUri: string; backgroundFit: BackgroundFit } {
+  return { ...options, backgroundImageUri: uri ?? '', backgroundFit: fit };
 }

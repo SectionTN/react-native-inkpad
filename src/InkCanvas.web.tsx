@@ -428,6 +428,7 @@ export function InkCanvas({
           size: { ...surface.size },
           strokes: surface.strokes,
         };
+        surface.setImage(imageUri, imageFit);
         const image = await surface.image.ready();
         return exportImage(
           snapshot,
@@ -450,7 +451,7 @@ export function InkCanvas({
               : { uri: surface.imageUri, fit: surface.fit },
         }),
     };
-  }, [surface]);
+  }, [surface, imageUri, imageFit]);
 
   return (
     <View {...viewProps} style={[styles.clip, viewProps.style]}>

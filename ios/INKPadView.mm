@@ -263,9 +263,32 @@ static NSString *INKInputName(UITouchType type)
   [self emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
 }
 
+// A command can arrive before the props JS rendered with it, so the export brings the image it expects.
+- (void)applyExportBackground:(NSString *)optionsJson
+{
+  NSData *data = [optionsJson dataUsingEncoding:NSUTF8StringEncoding];
+  id parsed = data ? [NSJSONSerialization JSONObjectWithData:data options:0 error:nil] : nil;
+  if (![parsed isKindOfClass:NSDictionary.class]) {
+    return;
+  }
+  id uri = parsed[@"backgroundImageUri"];
+  if ([uri isKindOfClass:NSString.class]) {
+    NSString *next = [uri length] > 0 ? uri : nil;
+    if (next != _imageURI && ![next isEqualToString:_imageURI]) {
+      [self loadBackground:next];
+    }
+  }
+  id fit = parsed[@"backgroundFit"];
+  if ([fit isKindOfClass:NSString.class]) {
+    _coverFit = [fit isEqualToString:@"cover"];
+    _imageView.contentMode = _coverFit ? UIViewContentModeScaleAspectFill : UIViewContentModeScaleAspectFit;
+  }
+}
+
 - (void)exportImage:(NSInteger)requestId optionsJson:(NSString *)optionsJson
 {
   __weak INKPadView *weakSelf = self;
+  [self applyExportBackground:optionsJson];
   if (_imageLoading) {
     [_afterImageLoad addObject:^{
       [weakSelf exportImage:requestId optionsJson:optionsJson];

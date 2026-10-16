@@ -276,6 +276,9 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
   internal fun exportImage(requestId: Int, optionsJson: String?) {
     val options = ExportOptions.parse(optionsJson)
+    // View commands run before pending prop updates, so the export brings the image JS last rendered.
+    options.backgroundImageUri?.let { backgroundImageUri = it }
+    options.backgroundFit?.let { backgroundFit = it }
     val snapshot = strokes.toList()
     val canvasWidth = width / density
     val canvasHeight = height / density

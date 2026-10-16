@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toNativeImageOptions } from '../imageOptions';
+import { toNativeImageOptions, withBackgroundImage } from '../imageOptions';
 
 describe('toNativeImageOptions', () => {
   it('fills in the defaults', () => {
@@ -40,5 +40,21 @@ describe('toNativeImageOptions', () => {
 
   it('falls back to the device scale when the scale is not positive', () => {
     expect(toNativeImageOptions({ scale: 0 }, 2).scale).toBe(2);
+  });
+});
+
+describe('withBackgroundImage', () => {
+  const base = toNativeImageOptions({}, 2);
+
+  it('sends the image the export expects', () => {
+    expect(withBackgroundImage(base, 'file:///paper.png', 'cover')).toEqual({
+      ...base,
+      backgroundImageUri: 'file:///paper.png',
+      backgroundFit: 'cover',
+    });
+  });
+
+  it('sends an empty URI when there is no image', () => {
+    expect(withBackgroundImage(base, undefined, 'contain').backgroundImageUri).toBe('');
   });
 });

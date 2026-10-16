@@ -2,6 +2,7 @@ package me.sectiontn.inkpad
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -18,6 +19,21 @@ class ExportOptionsTest {
     assertEquals(8f, options.padding, 0f)
     assertFalse(options.background)
     assertTrue(options.base64)
+  }
+
+  @Test
+  fun readsTheImageTheExportExpects() {
+    val options = ExportOptions.parse("""{"backgroundImageUri":"file:///paper.png","backgroundFit":"cover"}""")
+    assertEquals("file:///paper.png", options.backgroundImageUri)
+    assertEquals(BackgroundFit.COVER, options.backgroundFit)
+  }
+
+  @Test
+  fun leavesTheImageAloneWhenTheKeyIsMissing() {
+    val options = ExportOptions.parse("{}")
+    assertNull(options.backgroundImageUri)
+    assertNull(options.backgroundFit)
+    assertEquals("", ExportOptions.parse("""{"backgroundImageUri":""}""").backgroundImageUri)
   }
 
   @Test
