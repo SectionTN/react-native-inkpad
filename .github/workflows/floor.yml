@@ -25,10 +25,20 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   android:
+    name: Android, ${{ matrix.label }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: lowest React Native
+            rn: floor
+            ink: pinned
+          - label: newest androidx.ink
+            rn: latest
+            ink: newest
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -46,11 +56,28 @@ jobs:
         run: npm pack --pack-destination "$RUNNER_TEMP"
 
       - name: Create an app on the lowest React Native the peer range allows
+        if: matrix.rn == 'floor'
         run: |
           floor=$(node -p "require('./package.json').peerDependencies['react-native'].match(/\d+\.\d+/)[0]")
           version=$(npm view "react-native@~$floor.0" version --json | jq -r 'if type == "array" then last else . end')
           echo "React Native $version"
           npx --yes @react-native-community/cli@20.2.0 init InkpadFloor --version "$version" --pm npm --skip-git-init --install-pods false --directory "$RUNNER_TEMP/app"
+
+      - name: Create an app on the latest React Native
+        if: matrix.rn == 'latest'
+        run: |
+          version=$(npm view react-native@latest version)
+          echo "React Native $version"
+          npx --yes @react-native-community/cli@latest init InkpadFloor --version "$version" --pm npm --skip-git-init --install-pods false --directory "$RUNNER_TEMP/app"
+
+      - name: Force the newest androidx.ink
+        if: matrix.ink == 'newest'
+        run: |
+          version=$(curl -fsSL https://dl.google.com/android/maven2/androidx/ink/ink-brush/maven-metadata.xml | sed -n 's:.*<latest>\(.*\)</latest>.*:\1:p')
+          echo "androidx.ink $version"
+          echo "INK_VERSION=$version" >> "$GITHUB_ENV"
+          printf '%s\n' "allprojects {" "  configurations.configureEach {" "    resolutionStrategy.eachDependency { details ->" "      if (details.requested.group == 'androidx.ink') details.useVersion(System.getenv('INK_VERSION'))" "    }" "  }" "}" > "$RUNNER_TEMP/ink.gradle"
+          echo "INK_INIT=$RUNNER_TEMP/ink.gradle" >> "$GITHUB_ENV"
 
       - name: Install the packed library
         working-directory: ${{ runner.temp }}/app
@@ -64,10 +91,13 @@ jobs:
           path: |
             ~/.gradle/wrapper
             ~/.gradle/caches
-          key: ${{ runner.os }}-gradle-floor-${{ hashFiles('package.json') }}
+          key: ${{ runner.os }}-gradle-floor-${{ matrix.rn }}-${{ matrix.ink }}-${{ hashFiles('package.json') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-floor-
+            ${{ runner.os }}-gradle-floor-${{ matrix.rn }}-${{ matrix.ink }}-
 
       - name: Build the release app
         working-directory: ${{ runner.temp }}/app/android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon
+        run: |
+          args=(assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon)
+          if [ -n "${INK_INIT:-}" ]; then args+=(--init-script "$INK_INIT"); fi
+          ./gradlew "${args[@]}"
