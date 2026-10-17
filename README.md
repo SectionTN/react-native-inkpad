@@ -14,6 +14,11 @@ A native ink canvas for React Native. It draws with androidx.ink on Android, Pen
   <img alt="The example app on iOS and Android side by side: the same drawing in pen, marker and highlighter, the export sheet, and a signature" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-showcase.gif" />
 </picture>
 
+<picture>
+  <source type="image/webp" srcset="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-web.webp" />
+  <img alt="The example app in a desktop browser: a drawing in pen, marker and highlighter, the export sheet, and a signature" src="https://raw.githubusercontent.com/SectionTN/react-native-inkpad/main/.github/assets/inkpad-web.gif" />
+</picture>
+
 ## Features
 
 - Pen, marker and highlighter brushes, an eraser, undo and redo
