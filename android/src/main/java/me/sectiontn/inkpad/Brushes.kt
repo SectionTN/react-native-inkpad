@@ -1,42 +1,25 @@
 package me.sectiontn.inkpad
 
+import android.util.Base64
 import androidx.ink.brush.Brush
-import androidx.ink.brush.BrushBehavior
-import androidx.ink.brush.BrushCoat
 import androidx.ink.brush.BrushFamily
-import androidx.ink.brush.EasingFunction
-import androidx.ink.brush.ExperimentalInkCustomBrushApi
-import androidx.ink.brush.InputToolType
 import androidx.ink.brush.StockBrushes
+import androidx.ink.storage.BrushFamilyDecodeCallback
+import androidx.ink.storage.decode
+import java.io.ByteArrayInputStream
 
 internal object Brushes {
   private const val EPSILON = 0.1f
   private const val MIN_SIZE = 0.5f
   private const val MAX_SIZE = 200f
-  private const val FAST_CM_PER_SECOND = 30f
-  private const val FAST_SIZE_RATIO = 0.3f
-  private const val SPEED_SMOOTHING_MILLIS = 40L
 
-  // Touch screens rarely report real pressure, so finger and mouse strokes thin with speed instead.
-  @OptIn(ExperimentalInkCustomBrushApi::class)
+  // pressurePen that thins with speed for touch and mouse, encoded with Ink 1.0, whose builder API is gone in 1.1.
+  private const val PEN =
+    "H4sIAAAAAAAA/5PiyszLLkhM0S1IzVN6zsR1h4mXgaHBXhREyIIIVQYg0AURpiDCyqFKgIuPQ1CAURbEBcoecASL8INFDoDVO1SxGDFxsFaxWDFxMFbxOfFwcEMMnDVzpp2VEli9EFi9gwPYfLAaZpilDvZWumA13EA1aWnP7FTT0tTsqzi12DkYRc+eOWODrLz/0FSYcjWwkQsOAY1MO4xDOVDe3soYrJwRqPzsGR+Qixvsq1iUmDg4oJr6D31F03TA3soSrEkW4fEPjmBNbGDPskC1cl1XtkXWCvKxL0hDKIgQYpJglAJiLR4tLl7u64ttRBO5t1kDAL5rj9qEAQAA"
+
   private val pen: BrushFamily by lazy {
-    val stock = StockBrushes.pressurePen()
-    val thinning = BrushBehavior.Builder()
-      .setSource(BrushBehavior.Source.INPUT_SPEED_IN_CENTIMETERS_PER_SECOND)
-      .setSourceValueRangeStart(0f)
-      .setSourceValueRangeEnd(FAST_CM_PER_SECOND)
-      .setTarget(BrushBehavior.Target.SIZE_MULTIPLIER)
-      .setTargetModifierRangeStart(1f)
-      .setTargetModifierRangeEnd(FAST_SIZE_RATIO)
-      .setResponseCurve(EasingFunction.Predefined.EASE_OUT)
-      .setResponseTimeMillis(SPEED_SMOOTHING_MILLIS)
-      .setEnabledToolTypes(setOf(InputToolType.TOUCH, InputToolType.MOUSE))
-      .build()
-    val coats = stock.coats.map { coat ->
-      val tip = coat.tip.toBuilder().setBehaviors(coat.tip.behaviors + thinning).build()
-      BrushCoat(tip, coat.paintPreferences)
-    }
-    BrushFamily(coats, "inkpad-pen", stock.inputModel)
+    val bytes = ByteArrayInputStream(Base64.decode(PEN, Base64.DEFAULT))
+    BrushFamily.decode(bytes, BrushFamilyDecodeCallback { id, _ -> id })
   }
 
   fun create(type: BrushType, color: Int, size: Float): Brush {

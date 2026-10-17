@@ -50,6 +50,13 @@ if (project.extensions.findByName("kotlin") == null) {
 
 apply plugin: "com.facebook.react"
 
+kotlin {
+  compilerOptions {
+    // Experimental in androidx.ink 1.0, stable in 1.1; an unresolved marker here is only a warning.
+    optIn.add("androidx.ink.brush.ExperimentalInkCustomBrushApi")
+  }
+}
+
 android {
   namespace "me.sectiontn.inkpad"
 
@@ -71,6 +78,7 @@ dependencies {
   implementation "androidx.ink:ink-brush:1.0.0"
   implementation "androidx.ink:ink-geometry:1.0.0"
   implementation "androidx.ink:ink-rendering:1.0.0"
+  implementation "androidx.ink:ink-storage:1.0.0"
   implementation "androidx.ink:ink-strokes:1.0.0"
   testImplementation "junit:junit:4.13.2"
   testImplementation "org.json:json:20180813"
