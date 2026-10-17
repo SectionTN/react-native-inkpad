@@ -1,6 +1,6 @@
 {
   "name": "react-native-inkpad",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Native ink canvas for React Native, built on androidx.ink and PencilKit",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
