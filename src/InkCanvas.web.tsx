@@ -377,6 +377,7 @@ const fill: CSSProperties = {
   height: '100%',
 };
 
+/** A native ink canvas: androidx.ink on Android, PencilKit on iOS, Canvas 2D on web. */
 export function InkCanvas({
   ref,
   brush,

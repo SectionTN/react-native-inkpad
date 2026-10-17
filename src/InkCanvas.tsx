@@ -16,6 +16,7 @@ type NativeRef = React.ComponentRef<typeof NativeInkpadView>;
 
 const resolveImage: ResolveImage = (source) => Image.resolveAssetSource(source)?.uri;
 
+/** A native ink canvas: androidx.ink on Android, PencilKit on iOS, Canvas 2D on web. */
 export function InkCanvas({
   ref,
   brush,

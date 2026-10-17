@@ -84,6 +84,7 @@ function validateStroke(value: unknown, index: number): InkStroke {
   };
 }
 
+/** Checks a stored document and returns it with colors normalized. Throws `E_INVALID_DOCUMENT` or `E_UNSUPPORTED_VERSION`. */
 export function validateDocument(value: unknown): InkDocument {
   if (!isRecord(value)) fail('document must be an object');
   if (typeof value.version === 'number' && value.version > DOCUMENT_VERSION) {

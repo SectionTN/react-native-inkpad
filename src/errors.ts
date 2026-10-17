@@ -1,3 +1,4 @@
+/** Stable codes on every `InkpadError`. */
 export const ErrorCode = {
   NOT_MOUNTED: 'E_NOT_MOUNTED',
   TIMEOUT: 'E_TIMEOUT',
@@ -11,6 +12,7 @@ export const ErrorCode = {
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
+/** The error every failed call rejects with. Branch on `code`, not on the message. */
 export class InkpadError extends Error {
   readonly code: ErrorCode;
 

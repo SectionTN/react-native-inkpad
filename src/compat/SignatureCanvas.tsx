@@ -28,6 +28,7 @@ function warn(message: string) {
   if (__DEV__) console.warn(`react-native-inkpad/signature-canvas: ${message}`);
 }
 
+/** A drop-in for react-native-signature-canvas: the same props and ref methods, drawn by InkCanvas. */
 export default function SignatureCanvas({ ref, testID, style, ...props }: SignatureCanvasProps) {
   const ink = useRef<InkCanvasRef>(null);
   const strokeCount = useRef(0);
