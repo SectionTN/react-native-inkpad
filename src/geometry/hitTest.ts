@@ -1,5 +1,5 @@
 import type { InkStroke } from '../document';
-import { type Vec, widthPoints } from './outline';
+import { cachedWidthPoints, type Vec } from './outline';
 
 export const ERASER_RADIUS = 10;
 
@@ -30,7 +30,7 @@ function segmentDistance(a: Vec, b: Vec, c: Vec, d: Vec): number {
 }
 
 export function touches(stroke: InkStroke, from: Vec, to: Vec, radius = ERASER_RADIUS): boolean {
-  const points = widthPoints(stroke);
+  const points = cachedWidthPoints(stroke);
   // Index 0 pairs the first point with itself, so a one-point stroke is a zero-length segment.
   for (let i = 0; i < points.length; i++) {
     const a = points[Math.max(0, i - 1)];

@@ -1,7 +1,7 @@
 import { hexToRgba } from '../color';
 import type { InkStroke } from '../document';
 import { type BackgroundFit, fitRect, type Size } from '../geometry/fit';
-import { outlinePath, widthPoints } from '../geometry/outline';
+import { cachedWidthPoints, outlinePath, type WidthPoint, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
 import type { ImageLike } from './backgroundImage';
 
@@ -24,18 +24,27 @@ export function drawBackground(
   ctx.restore();
 }
 
-export function drawStroke(
+function fillStroke(
   ctx: CanvasRenderingContext2D,
   stroke: InkStroke,
-  makePath: MakePath = newPath,
+  widths: readonly WidthPoint[],
+  makePath: MakePath,
 ): void {
   const { r, g, b, alpha, multiply } = strokePaint(stroke.brush);
   ctx.save();
   ctx.fillStyle = `rgb(${r},${g},${b})`;
   ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = multiply ? 'multiply' : 'source-over';
-  ctx.fill(makePath(outlinePath(widthPoints(stroke))));
+  ctx.fill(makePath(outlinePath(widths)));
   ctx.restore();
+}
+
+export function drawStroke(
+  ctx: CanvasRenderingContext2D,
+  stroke: InkStroke,
+  makePath: MakePath = newPath,
+): void {
+  fillStroke(ctx, stroke, widthPoints(stroke), makePath);
 }
 
 export function drawStrokes(
@@ -43,7 +52,7 @@ export function drawStrokes(
   strokes: readonly InkStroke[],
   makePath: MakePath = newPath,
 ): void {
-  for (const stroke of strokes) drawStroke(ctx, stroke, makePath);
+  for (const stroke of strokes) fillStroke(ctx, stroke, cachedWidthPoints(stroke), makePath);
 }
 
 export function drawBackgroundImage(

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InkStroke, InputType } from '../document';
-import { outlinePath, widthPoints } from '../geometry/outline';
+import { cachedWidthPoints, outlinePath, widthPoints } from '../geometry/outline';
 
 const stroke = (
   type: 'pen' | 'marker',
@@ -56,5 +56,16 @@ describe('outlinePath', () => {
 
   it('draws a circle for a single point', () => {
     expect(outlinePath([{ x: 10, y: 10, w: 4 }])).toBe('M 8 10 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 Z');
+  });
+});
+
+describe('cachedWidthPoints', () => {
+  it('computes a stroke widths once and keeps strokes apart', () => {
+    const a = stroke('pen', [0, 0, 0, -1, -1, -1, 10, 0, 16, -1, -1, -1]);
+    const b = stroke('pen', [0, 0, 0, -1, -1, -1, 0, 30, 16, -1, -1, -1]);
+    expect(cachedWidthPoints(a)).toBe(cachedWidthPoints(a));
+    expect(cachedWidthPoints(a)).toEqual(widthPoints(a));
+    expect(cachedWidthPoints(b)).toEqual(widthPoints(b));
+    expect(cachedWidthPoints(b)).not.toEqual(cachedWidthPoints(a));
   });
 });

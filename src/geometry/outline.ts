@@ -36,6 +36,18 @@ export function widthPoints(stroke: InkStroke): WidthPoint[] {
   return out;
 }
 
+const widthCache = new WeakMap<InkStroke, WidthPoint[]>();
+
+// Finished strokes never change, so redraws and the eraser reuse their widths.
+export function cachedWidthPoints(stroke: InkStroke): WidthPoint[] {
+  let widths = widthCache.get(stroke);
+  if (!widths) {
+    widths = widthPoints(stroke);
+    widthCache.set(stroke, widths);
+  }
+  return widths;
+}
+
 export function fmt(value: number): string {
   const text = value.toFixed(2).replace(/\.?0+$/, '');
   return text === '-0' ? '0' : text;
