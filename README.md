@@ -127,13 +127,22 @@ Props, callbacks and ref methods keep working, and `fromData` loads signatures y
 - The eraser removes whole strokes, not pixels. It can't remove a `dataURL` image.
 - A `dataURL` image keeps its aspect ratio instead of stretching to the pad.
 
+## Versioning
+
+From 1.0, releases follow [semver](https://semver.org):
+
+- Patches fix bugs, minors add props, methods and error codes
+- Removing or renaming anything public, the signature canvas adapter included, waits for a major
+- Documents from `getStrokes()` load in every later version
+- A minor can change how strokes look, never the saved document format
+
 ## Roadmap
 
 - [x] 0.1: Android and iOS
 - [x] 0.2: React Native 0.84+ (Expo SDK 56+)
 - [x] 0.3: Web
 - [x] 0.4: Background images, stylus-only mode and `onError`
-- [ ] 1.0: First stable release
+- [x] 1.0: First stable release
 
 ## Contributing
 
