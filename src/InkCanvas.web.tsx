@@ -18,6 +18,7 @@ import { toNativeImageOptions } from './imageOptions';
 import { toNativeInkProps } from './nativeProps';
 import { toSVG } from './svg/toSVG';
 import type { BackgroundFit, InkCanvasProps, InkState, InputMode } from './types';
+import { usePropWarnings } from './usePropWarnings';
 import { BackgroundImage } from './web/backgroundImage';
 import { exportImage } from './web/exportImage';
 import { StrokeHistory } from './web/history';
@@ -389,6 +390,7 @@ export function InkCanvas({
   onError,
   ...viewProps
 }: InkCanvasProps) {
+  usePropWarnings({ brush, background });
   const native = toNativeInkProps({ brush, tool, editable, background, inputMode });
   const backgroundHex = hexOf(native.canvasColor);
   const current: Live = {

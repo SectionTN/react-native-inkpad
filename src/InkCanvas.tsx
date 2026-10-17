@@ -10,6 +10,7 @@ import { Requests } from './requests';
 import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
 import { toSVG } from './svg/toSVG';
 import type { ImageResult, InkCanvasProps } from './types';
+import { usePropWarnings } from './usePropWarnings';
 
 type NativeRef = React.ComponentRef<typeof NativeInkpadView>;
 
@@ -28,6 +29,7 @@ export function InkCanvas({
   onError,
   ...viewProps
 }: InkCanvasProps) {
+  usePropWarnings({ brush, background });
   const nativeRef = useRef<NativeRef>(null);
   const requestsRef = useRef<Requests | null>(null);
   requestsRef.current ??= new Requests();
