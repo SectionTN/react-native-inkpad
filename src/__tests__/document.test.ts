@@ -81,3 +81,32 @@ describe('validateDocument', () => {
     );
   });
 });
+
+describe('validateDocument messages', () => {
+  const messageOf = (run: () => unknown) => {
+    try {
+      run();
+    } catch (error) {
+      return (error as Error).message;
+    }
+    return undefined;
+  };
+
+  it('names the value it got and the values it takes', () => {
+    expect(messageOf(() => validateDocument(doc([stroke(finger, { type: 'crayon' })])))).toBe(
+      'strokes[0].brush.type is "crayon", expected pen, marker or highlighter',
+    );
+    expect(messageOf(() => validateDocument(doc([{ ...stroke(finger), input: 'pencil' }])))).toBe(
+      'strokes[0].input is "pencil", expected touch, stylus or mouse',
+    );
+    expect(messageOf(() => validateDocument(doc([stroke(finger, { color: '#112233' })])))).toBe(
+      'strokes[0].brush.color is "#112233", expected #RRGGBBAA',
+    );
+  });
+
+  it('says how to load a newer document', () => {
+    expect(messageOf(() => validateDocument(doc([], { version: 2 })))).toBe(
+      'document version 2 is newer than 1: update react-native-inkpad to load it',
+    );
+  });
+});

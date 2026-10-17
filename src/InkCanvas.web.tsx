@@ -11,7 +11,7 @@ import {
   type InputType,
   validateDocument,
 } from './document';
-import { ErrorCode, InkpadError } from './errors';
+import { ErrorCode, InkpadError, notMounted } from './errors';
 import { touches } from './geometry/hitTest';
 import { type Vec, widthPoints } from './geometry/outline';
 import { toNativeImageOptions } from './imageOptions';
@@ -67,8 +67,6 @@ function hexOf(color: ColorValue | undefined): string | undefined {
   const processed = processColor(color);
   return typeof processed === 'number' ? argbToHex(processed) : undefined;
 }
-
-const notMounted = () => new InkpadError(ErrorCode.NOT_MOUNTED, 'InkCanvas is not mounted');
 
 class Surface {
   strokes: InkStroke[] = [];

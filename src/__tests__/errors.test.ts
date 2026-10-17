@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ErrorCode, InkpadError, toInkpadError } from '../errors';
+import { ErrorCode, InkpadError, notMounted, toInkpadError } from '../errors';
 
 describe('InkpadError', () => {
   it('is an Error carrying a stable code', () => {
@@ -13,5 +13,15 @@ describe('InkpadError', () => {
   it('maps known native codes and falls back to E_NATIVE', () => {
     expect(toInkpadError('E_TIMEOUT', 'late').code).toBe(ErrorCode.TIMEOUT);
     expect(toInkpadError('E_SOMETHING_NEW', 'odd').code).toBe(ErrorCode.NATIVE);
+  });
+});
+
+describe('notMounted', () => {
+  it('says when ref calls work', () => {
+    const error = notMounted();
+    expect(error.code).toBe(ErrorCode.NOT_MOUNTED);
+    expect(error.message).toBe(
+      'InkCanvas is not mounted: call ref methods after it mounts, from an effect or an event handler',
+    );
   });
 });

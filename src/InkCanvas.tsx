@@ -3,7 +3,7 @@ import { useEffect, useImperativeHandle, useRef } from 'react';
 import { Image, PixelRatio, processColor } from 'react-native';
 import { argbToHex } from './color';
 import { validateDocument } from './document';
-import { ErrorCode, InkpadError, toInkpadError } from './errors';
+import { ErrorCode, InkpadError, notMounted, toInkpadError } from './errors';
 import { toNativeImageOptions, withBackground } from './imageOptions';
 import { type ResolveImage, toNativeInkProps } from './nativeProps';
 import { Requests } from './requests';
@@ -50,7 +50,7 @@ export function InkCanvas({
     const send = (command: (node: NativeRef, requestId: number) => void) =>
       requests.start((requestId) => {
         const node = nativeRef.current;
-        if (!node) throw new InkpadError(ErrorCode.NOT_MOUNTED, 'InkCanvas is not mounted');
+        if (!node) throw notMounted();
         command(node, requestId);
       });
     const getStrokes = async () => validateDocument(JSON.parse(await send(Commands.getStrokes)));

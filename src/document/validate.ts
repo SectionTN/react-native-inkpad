@@ -18,6 +18,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const shown = (value: unknown) => JSON.stringify(value) ?? String(value);
+const choices = (list: readonly string[]) => `${list.slice(0, -1).join(', ')} or ${list.at(-1)}`;
+
 function oneOf<T extends string>(list: readonly T[], value: unknown): value is T {
   return typeof value === 'string' && (list as readonly string[]).includes(value);
 }
@@ -46,11 +49,15 @@ function validateStroke(value: unknown, index: number): InkStroke {
   const path = `strokes[${index}]`;
   if (!isRecord(value) || !isRecord(value.brush)) fail(`${path} must have a brush`);
   const { type, color, size } = value.brush;
-  if (!oneOf(BRUSH_TYPES, type)) fail(`${path}.brush.type is not a known brush`);
-  if (typeof color !== 'string' || !COLOR.test(color)) {
-    fail(`${path}.brush.color must be #RRGGBBAA`);
+  if (!oneOf(BRUSH_TYPES, type)) {
+    fail(`${path}.brush.type is ${shown(type)}, expected ${choices(BRUSH_TYPES)}`);
   }
-  if (!oneOf(INPUT_TYPES, value.input)) fail(`${path}.input is not a known input type`);
+  if (typeof color !== 'string' || !COLOR.test(color)) {
+    fail(`${path}.brush.color is ${shown(color)}, expected #RRGGBBAA`);
+  }
+  if (!oneOf(INPUT_TYPES, value.input)) {
+    fail(`${path}.input is ${shown(value.input)}, expected ${choices(INPUT_TYPES)}`);
+  }
   const points = value.points;
   if (!Array.isArray(points) || points.length === 0 || points.length % POINT_STRIDE !== 0) {
     fail(`${path}.points must hold 6 numbers per point`);
@@ -82,7 +89,7 @@ export function validateDocument(value: unknown): InkDocument {
   if (typeof value.version === 'number' && value.version > DOCUMENT_VERSION) {
     throw new InkpadError(
       ErrorCode.UNSUPPORTED_VERSION,
-      `document version ${value.version} is newer than ${DOCUMENT_VERSION}`,
+      `document version ${value.version} is newer than ${DOCUMENT_VERSION}: update react-native-inkpad to load it`,
     );
   }
   if (value.version !== DOCUMENT_VERSION) fail(`version must be ${DOCUMENT_VERSION}`);

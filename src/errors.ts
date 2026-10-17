@@ -26,3 +26,10 @@ const KNOWN = new Set<string>(Object.values(ErrorCode));
 export function toInkpadError(code: string, message: string): InkpadError {
   return new InkpadError(KNOWN.has(code) ? (code as ErrorCode) : ErrorCode.NATIVE, message);
 }
+
+export function notMounted(): InkpadError {
+  return new InkpadError(
+    ErrorCode.NOT_MOUNTED,
+    'InkCanvas is not mounted: call ref methods after it mounts, from an effect or an event handler',
+  );
+}
