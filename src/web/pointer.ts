@@ -87,6 +87,11 @@ export function acceptsPointer(
   return active === null && sample.isPrimary && sample.button === 0;
 }
 
+// A browser can skip pointerup, after a focus change for one; a mouse or pen move with no button down ends the stroke.
+export function endsStroke(sample: { pointerType: string; buttons: number }): boolean {
+  return (sample.pointerType === 'mouse' || sample.pointerType === 'pen') && sample.buttons === 0;
+}
+
 // Browsers pan with a pen too, so stylus mode lets fingers pan and blocks the pen's touches instead.
 export function touchActionFor(editable: boolean, mode: InputMode): string {
   if (!editable) return 'auto';

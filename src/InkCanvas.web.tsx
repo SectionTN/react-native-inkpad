@@ -27,6 +27,7 @@ import {
   acceptsPointer,
   appendPoint,
   blocksTouch,
+  endsStroke,
   inputOf,
   pointOf,
   predictedOf,
@@ -101,6 +102,7 @@ class Surface {
     top.addEventListener('pointermove', this.move);
     top.addEventListener('pointerup', this.up);
     top.addEventListener('pointercancel', this.cancel);
+    top.addEventListener('lostpointercapture', this.up);
     top.addEventListener('touchstart', this.touch, { passive: false });
     top.addEventListener('touchmove', this.touch, { passive: false });
     top.addEventListener('contextmenu', this.menu);
@@ -113,6 +115,7 @@ class Surface {
       top.removeEventListener('pointermove', this.move);
       top.removeEventListener('pointerup', this.up);
       top.removeEventListener('pointercancel', this.cancel);
+      top.removeEventListener('lostpointercapture', this.up);
       top.removeEventListener('touchstart', this.touch);
       top.removeEventListener('touchmove', this.touch);
       top.removeEventListener('contextmenu', this.menu);
@@ -290,6 +293,10 @@ class Surface {
   private readonly move = (event: PointerEvent): void => {
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
+    if (endsStroke(event)) {
+      this.up(event);
+      return;
+    }
     if (gesture.kind === 'erase') {
       for (const sample of samplesOf(event)) {
         const point = {

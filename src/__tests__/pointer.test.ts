@@ -4,6 +4,7 @@ import {
   acceptsPointer,
   appendPoint,
   blocksTouch,
+  endsStroke,
   inputOf,
   type PointerSample,
   pointOf,
@@ -130,5 +131,15 @@ describe('stylus mode scrolling', () => {
     expect(blocksTouch('stylus', false, finger)).toBe(false);
     expect(blocksTouch('stylus', false, [{}])).toBe(false);
     expect(blocksTouch('any', true, pencil)).toBe(false);
+  });
+});
+
+describe('stroke lifecycle', () => {
+  it('ends a mouse or pen stroke once no button is down', () => {
+    expect(endsStroke({ pointerType: 'mouse', buttons: 0 })).toBe(true);
+    expect(endsStroke({ pointerType: 'pen', buttons: 0 })).toBe(true);
+    expect(endsStroke({ pointerType: 'mouse', buttons: 1 })).toBe(false);
+    expect(endsStroke({ pointerType: 'pen', buttons: 1 })).toBe(false);
+    expect(endsStroke({ pointerType: 'touch', buttons: 0 })).toBe(false);
   });
 });
