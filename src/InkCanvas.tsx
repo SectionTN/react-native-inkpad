@@ -4,7 +4,7 @@ import { Image, PixelRatio, processColor } from 'react-native';
 import { argbToHex } from './color';
 import { validateDocument } from './document';
 import { ErrorCode, InkpadError, toInkpadError } from './errors';
-import { toNativeImageOptions, withBackgroundImage } from './imageOptions';
+import { toNativeImageOptions, withBackground } from './imageOptions';
 import { type ResolveImage, toNativeInkProps } from './nativeProps';
 import { Requests } from './requests';
 import NativeInkpadView, { Commands } from './specs/InkpadViewNativeComponent';
@@ -66,11 +66,11 @@ export function InkCanvas({
         );
       },
       toImage: async (options = {}) => {
-        const native = withBackgroundImage(
-          toNativeImageOptions(options, PixelRatio.get()),
-          imageUri,
-          imageFit,
-        );
+        const native = withBackground(toNativeImageOptions(options, PixelRatio.get()), {
+          color: backgroundHex,
+          uri: imageUri,
+          fit: imageFit,
+        });
         const payload = await send((node, requestId) =>
           Commands.exportImage(node, requestId, JSON.stringify(native)),
         );

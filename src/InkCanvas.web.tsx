@@ -444,6 +444,7 @@ export function InkCanvas({
           size: { ...surface.size },
           strokes: surface.strokes,
         };
+        if (surface.background !== backgroundHex) surface.setBackground(backgroundHex);
         surface.setImage(imageUri, imageFit);
         const image = await surface.image.ready();
         return exportImage(
@@ -467,7 +468,7 @@ export function InkCanvas({
               : { uri: surface.imageUri, fit: surface.fit },
         }),
     };
-  }, [surface, imageUri, imageFit]);
+  }, [surface, backgroundHex, imageUri, imageFit]);
 
   return (
     <View {...viewProps} style={[styles.clip, viewProps.style]}>

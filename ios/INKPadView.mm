@@ -278,6 +278,12 @@ static NSString *INKInputName(UITouchType type)
       [self loadBackground:next];
     }
   }
+  id color = parsed[@"backgroundColor"];
+  if ([color isKindOfClass:NSString.class] && [color length] == 0) {
+    _container.backgroundColor = UIColor.clearColor;
+  } else if (INKIsHexColor(color)) {
+    _container.backgroundColor = INKColorFromHex(color);
+  }
   id fit = parsed[@"backgroundFit"];
   if ([fit isKindOfClass:NSString.class]) {
     _coverFit = [fit isEqualToString:@"cover"];

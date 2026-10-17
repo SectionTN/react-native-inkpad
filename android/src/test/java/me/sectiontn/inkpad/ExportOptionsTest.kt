@@ -1,5 +1,6 @@
 package me.sectiontn.inkpad
 
+import android.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -26,6 +27,14 @@ class ExportOptionsTest {
     val options = ExportOptions.parse("""{"backgroundImageUri":"file:///paper.png","backgroundFit":"cover"}""")
     assertEquals("file:///paper.png", options.backgroundImageUri)
     assertEquals(BackgroundFit.COVER, options.backgroundFit)
+  }
+
+  @Test
+  fun readsTheColorTheExportExpects() {
+    assertEquals(ColorHex.toArgb("#FF000080"), ExportOptions.parse("""{"backgroundColor":"#FF000080"}""").backgroundColor)
+    assertEquals(Color.TRANSPARENT, ExportOptions.parse("""{"backgroundColor":""}""").backgroundColor)
+    assertNull(ExportOptions.parse("{}").backgroundColor)
+    assertNull(ExportOptions.parse("""{"backgroundColor":"red"}""").backgroundColor)
   }
 
   @Test

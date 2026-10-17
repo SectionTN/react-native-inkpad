@@ -26,11 +26,19 @@ export function toNativeImageOptions(
   };
 }
 
-// Android runs view commands before pending prop updates, so the export carries the image it expects.
-export function withBackgroundImage(
+// Android runs view commands before pending prop updates, so the export carries the background it expects.
+export function withBackground(
   options: NativeImageOptions,
-  uri: string | undefined,
-  fit: BackgroundFit,
-): NativeImageOptions & { backgroundImageUri: string; backgroundFit: BackgroundFit } {
-  return { ...options, backgroundImageUri: uri ?? '', backgroundFit: fit };
+  background: { color: string | undefined; uri: string | undefined; fit: BackgroundFit },
+): NativeImageOptions & {
+  backgroundColor: string;
+  backgroundImageUri: string;
+  backgroundFit: BackgroundFit;
+} {
+  return {
+    ...options,
+    backgroundColor: background.color ?? '',
+    backgroundImageUri: background.uri ?? '',
+    backgroundFit: background.fit,
+  };
 }

@@ -1,5 +1,6 @@
 package me.sectiontn.inkpad
 
+import android.graphics.Color
 import org.json.JSONObject
 import kotlin.math.roundToInt
 
@@ -11,6 +12,7 @@ internal class ExportOptions(
   val padding: Float,
   val background: Boolean,
   val base64: Boolean,
+  val backgroundColor: Int?,
   val backgroundImageUri: String?,
   val backgroundFit: BackgroundFit?,
 ) {
@@ -28,9 +30,20 @@ internal class ExportOptions(
         padding = o.optDouble("padding", 0.0).toFloat().coerceAtLeast(0f),
         background = o.optBoolean("background", true),
         base64 = o.optBoolean("base64", false),
+        backgroundColor = colorOf(o),
         backgroundImageUri = if (o.has("backgroundImageUri")) o.optString("backgroundImageUri") else null,
         backgroundFit = BackgroundFit.from(o.optString("backgroundFit")),
       )
+    }
+
+    private fun colorOf(o: JSONObject): Int? {
+      if (!o.has("backgroundColor")) return null
+      val hex = o.optString("backgroundColor")
+      return when {
+        hex.isEmpty() -> Color.TRANSPARENT
+        ColorHex.isValid(hex) -> ColorHex.toArgb(hex)
+        else -> null
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toNativeImageOptions, withBackgroundImage } from '../imageOptions';
+import { toNativeImageOptions, withBackground } from '../imageOptions';
 
 describe('toNativeImageOptions', () => {
   it('fills in the defaults', () => {
@@ -43,18 +43,22 @@ describe('toNativeImageOptions', () => {
   });
 });
 
-describe('withBackgroundImage', () => {
+describe('withBackground', () => {
   const base = toNativeImageOptions({}, 2);
 
-  it('sends the image the export expects', () => {
-    expect(withBackgroundImage(base, 'file:///paper.png', 'cover')).toEqual({
+  it('sends the color, image and fit the export expects', () => {
+    expect(
+      withBackground(base, { color: '#FF000080', uri: 'file:///paper.png', fit: 'cover' }),
+    ).toEqual({
       ...base,
+      backgroundColor: '#FF000080',
       backgroundImageUri: 'file:///paper.png',
       backgroundFit: 'cover',
     });
   });
 
-  it('sends an empty URI when there is no image', () => {
-    expect(withBackgroundImage(base, undefined, 'contain').backgroundImageUri).toBe('');
+  it('sends empty strings when there is no color or image', () => {
+    const native = withBackground(base, { color: undefined, uri: undefined, fit: 'contain' });
+    expect([native.backgroundColor, native.backgroundImageUri]).toEqual(['', '']);
   });
 });
