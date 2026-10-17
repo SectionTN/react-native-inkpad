@@ -92,6 +92,19 @@ export function endsStroke(sample: { pointerType: string; buttons: number }): bo
   return (sample.pointerType === 'mouse' || sample.pointerType === 'pen') && sample.buttons === 0;
 }
 
+// setPointerCapture throws NotFoundError once the pointer is gone; the stroke still draws without capture.
+export function capture(
+  target: { setPointerCapture(pointerId: number): void },
+  pointerId: number,
+): boolean {
+  try {
+    target.setPointerCapture(pointerId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Browsers pan with a pen too, so stylus mode lets fingers pan and blocks the pen's touches instead.
 export function touchActionFor(editable: boolean, mode: InputMode): string {
   if (!editable) return 'auto';

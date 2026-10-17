@@ -27,6 +27,7 @@ import {
   acceptsPointer,
   appendPoint,
   blocksTouch,
+  capture,
   endsStroke,
   inputOf,
   pointOf,
@@ -257,7 +258,7 @@ class Surface {
     const top = this.top;
     if (!top || !live.editable) return;
     if (!acceptsPointer(this.gesture?.pointerId ?? null, event, live.inputMode)) return;
-    top.setPointerCapture(event.pointerId);
+    capture(top, event.pointerId);
     const rect = top.getBoundingClientRect();
     const origin = { left: rect.left, top: rect.top, startTime: event.timeStamp };
     if (live.tool === 'erase') {

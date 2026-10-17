@@ -4,6 +4,7 @@ import {
   acceptsPointer,
   appendPoint,
   blocksTouch,
+  capture,
   endsStroke,
   inputOf,
   type PointerSample,
@@ -141,5 +142,17 @@ describe('stroke lifecycle', () => {
     expect(endsStroke({ pointerType: 'mouse', buttons: 1 })).toBe(false);
     expect(endsStroke({ pointerType: 'pen', buttons: 1 })).toBe(false);
     expect(endsStroke({ pointerType: 'touch', buttons: 0 })).toBe(false);
+  });
+
+  it('keeps going when pointer capture throws', () => {
+    const calls: number[] = [];
+    expect(capture({ setPointerCapture: (id) => calls.push(id) }, 7)).toBe(true);
+    expect(calls).toEqual([7]);
+    const gone = {
+      setPointerCapture: () => {
+        throw new Error('NotFoundError');
+      },
+    };
+    expect(capture(gone, 7)).toBe(false);
   });
 });
