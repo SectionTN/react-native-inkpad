@@ -298,6 +298,9 @@ class Surface {
       this.up(event);
       return;
     }
+    // The page can scroll mid-stroke, so points are placed against where the canvas is now.
+    const rect = this.top?.getBoundingClientRect();
+    if (rect) gesture.origin = { ...gesture.origin, left: rect.left, top: rect.top };
     if (gesture.kind === 'erase') {
       for (const sample of samplesOf(event)) {
         const point = {
