@@ -76,7 +76,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: End-to-end tests
+      - name: Instrumented and end-to-end tests
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           E2E_TELEMETRY_DISABLED: '1'
@@ -88,6 +88,7 @@ jobs:
           # The default 320x640 dp screen is smaller than any current phone and hides the Sign screen's footer.
           profile: pixel_6
           script: |
+            (cd example/android && ./gradlew :react-native-inkpad:connectedDebugAndroidTest --no-daemon -PreactNativeArchitectures=x86_64)
             yarn e2e --target android || (mkdir -p .e2e/artifacts; adb logcat -d > .e2e/artifacts/logcat.txt; adb shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' > .e2e/artifacts/focus.txt; exit 1)
 
       - name: Upload e2e artifacts
