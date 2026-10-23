@@ -12,14 +12,25 @@
 #import "INKBrushes.h"
 #import "INKCanvasView.h"
 #import "INKColor.h"
+#import "INKCommandQueue.h"
 #import "INKImageExporter.h"
 #import "INKStrokeCodec.h"
 #import "RCTFabricComponentsPlugins.h"
 
 using namespace facebook::react;
 
-// Brushes outlive the strokes they belong to, because undo can bring those strokes back.
-static const NSUInteger INKBrushLimit = 1000;
+// Saving and loading run here one at a time, off the main thread.
+static dispatch_queue_t INKDocumentQueue(void)
+{
+  static dispatch_queue_t queue;
+  static dispatch_once_t once;
+  dispatch_once(&once, ^{
+    queue = dispatch_queue_create(
+        "me.sectiontn.inkpad.document",
+        dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, 0));
+  });
+  return queue;
+}
 
 @interface INKPadView () <RCTInkpadViewViewProtocol, PKCanvasViewDelegate>
 @end
@@ -50,8 +61,9 @@ static NSString *INKInputName(UITouchType type)
   UIColor *_brushColor;
   CGFloat _brushSize;
   BOOL _erasing;
+  // Kept for the view's lifetime, since undo can bring back any stroke.
   NSMutableDictionary<NSDate *, INKBrushInfo *> *_brushes;
-  NSMutableArray<NSDate *> *_brushOrder;
+  INKCommandQueue *_commands;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -75,7 +87,7 @@ static NSString *INKInputName(UITouchType type)
     _brushColor = UIColor.blackColor;
     _brushSize = 3;
     _brushes = [NSMutableDictionary new];
-    _brushOrder = [NSMutableArray new];
+    _commands = [INKCommandQueue new];
     _afterImageLoad = [NSMutableArray new];
 
     _container = [[UIView alloc] initWithFrame:frame];
@@ -218,23 +230,29 @@ static NSString *INKInputName(UITouchType type)
 
 - (void)undo
 {
-  if (_canvas.undoManager.canUndo) {
-    [_canvas.undoManager undo];
-  }
+  [_commands run:^{
+    if (self->_canvas.undoManager.canUndo) {
+      [self->_canvas.undoManager undo];
+    }
+  }];
 }
 
 - (void)redo
 {
-  if (_canvas.undoManager.canRedo) {
-    [_canvas.undoManager redo];
-  }
+  [_commands run:^{
+    if (self->_canvas.undoManager.canRedo) {
+      [self->_canvas.undoManager redo];
+    }
+  }];
 }
 
 - (void)clear
 {
-  if (_canvas.drawing.strokes.count > 0) {
-    [self replaceDrawing:[PKDrawing new]];
-  }
+  [_commands run:^{
+    if (self->_canvas.drawing.strokes.count > 0) {
+      [self replaceDrawing:[PKDrawing new]];
+    }
+  }];
 }
 
 // Registering the reverse inside the undo handler is what makes redo work.
@@ -250,38 +268,40 @@ static NSString *INKInputName(UITouchType type)
 
 - (void)getStrokes:(NSInteger)requestId
 {
-  PKDrawing *drawing = _canvas.drawing;
-  NSDictionary<NSDate *, INKBrushInfo *> *brushes = [_brushes copy];
-  CGSize size = self.bounds.size;
-  __weak INKPadView *weakSelf = self;
-  // A long drawing serializes to a large JSON string, and exporting already renders off the main thread.
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-    NSString *json = [INKStrokeCodec encodeDrawing:drawing size:size brushes:brushes];
-    dispatch_async(dispatch_get_main_queue(), ^{
-      [weakSelf emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+  [_commands run:^{
+    PKDrawing *drawing = self->_canvas.drawing;
+    NSDictionary<NSDate *, INKBrushInfo *> *brushes = [self->_brushes copy];
+    CGSize size = self.bounds.size;
+    __weak INKPadView *weakSelf = self;
+    // A long drawing serializes to a large JSON string, and exporting already renders off the main thread.
+    dispatch_async(INKDocumentQueue(), ^{
+      NSString *json = [INKStrokeCodec encodeDrawing:drawing size:size brushes:brushes];
+      dispatch_async(dispatch_get_main_queue(), ^{
+        [weakSelf emitResult:requestId ok:YES payload:json errorCode:@"" message:@""];
+      });
     });
-  });
+  }];
 }
 
 - (void)setStrokes:(NSInteger)requestId json:(NSString *)json
 {
-  __weak INKPadView *weakSelf = self;
+  INKCommandSlot *slot = [_commands reserve];
   // Loading a saved drawing builds a stroke path per point, which is as heavy as encoding one.
-  dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+  dispatch_async(INKDocumentQueue(), ^{
     NSString *errorCode = nil;
     NSString *message = nil;
     INKDecodedDrawing *decoded = [INKStrokeCodec decode:json errorCode:&errorCode message:&message];
     dispatch_async(dispatch_get_main_queue(), ^{
-      INKPadView *view = weakSelf;
-      if (decoded == nil) {
-        [view emitResult:requestId ok:NO payload:@"" errorCode:errorCode message:message];
-        return;
-      }
-      [decoded.brushes enumerateKeysAndObjectsUsingBlock:^(NSDate *created, INKBrushInfo *info, BOOL *stop) {
-        [view rememberBrush:info forDate:created];
-      }];
-      [view replaceDrawing:decoded.drawing];
-      [view emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+      [self->_commands fill:slot
+                     action:^{
+                       if (decoded == nil) {
+                         [self emitResult:requestId ok:NO payload:@"" errorCode:errorCode message:message];
+                         return;
+                       }
+                       [self->_brushes addEntriesFromDictionary:decoded.brushes];
+                       [self replaceDrawing:decoded.drawing];
+                       [self emitResult:requestId ok:YES payload:@"" errorCode:@"" message:@""];
+                     }];
     });
   });
 }
@@ -316,15 +336,23 @@ static NSString *INKInputName(UITouchType type)
 
 - (void)exportImage:(NSInteger)requestId optionsJson:(NSString *)optionsJson
 {
-  __weak INKPadView *weakSelf = self;
   [self applyExportBackground:optionsJson];
+  [_commands run:^{
+    [self exportDrawing:self->_canvas.drawing requestId:requestId optionsJson:optionsJson];
+  }];
+}
+
+// An export that waits for the background image keeps the drawing it was asked for.
+- (void)exportDrawing:(PKDrawing *)drawing requestId:(NSInteger)requestId optionsJson:(NSString *)optionsJson
+{
+  __weak INKPadView *weakSelf = self;
   if (_imageLoading) {
     [_afterImageLoad addObject:^{
-      [weakSelf exportImage:requestId optionsJson:optionsJson];
+      [weakSelf exportDrawing:drawing requestId:requestId optionsJson:optionsJson];
     }];
     return;
   }
-  [INKImageExporter exportDrawing:_canvas.drawing
+  [INKImageExporter exportDrawing:drawing
                        canvasSize:self.bounds.size
                       canvasColor:_container.backgroundColor ?: UIColor.clearColor
                   backgroundImage:_backgroundImage
@@ -415,21 +443,7 @@ static NSString *INKInputName(UITouchType type)
     info.hasPressure = stylus;
     info.hasTilt = stylus;
     info.hasOrientation = stylus;
-    [self rememberBrush:info forDate:created];
-  }
-}
-
-// Undo can bring back any stroke that is still in the drawing, so the brushes stay in a bounded window
-// instead of growing for the whole session.
-- (void)rememberBrush:(INKBrushInfo *)info forDate:(NSDate *)date
-{
-  if (![_brushOrder.lastObject isEqualToDate:date]) {
-    [_brushOrder addObject:date];
-  }
-  _brushes[date] = info;
-  while (_brushOrder.count > INKBrushLimit) {
-    [_brushes removeObjectForKey:_brushOrder.firstObject];
-    [_brushOrder removeObjectAtIndex:0];
+    _brushes[created] = info;
   }
 }
 
