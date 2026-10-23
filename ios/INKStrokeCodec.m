@@ -1,6 +1,7 @@
 #import "INKStrokeCodec.h"
 
 #import "INKColor.h"
+#import "INKPenModel.h"
 
 static const NSUInteger INKStride = 6;
 // Apple Pencil reports force up to about 4.17. Documents store pressure from 0 to 1.
@@ -23,12 +24,32 @@ static double INKWrapAngle(double angle)
   return wrapped < 0 ? wrapped + 2 * M_PI : wrapped;
 }
 
-static CGFloat INKPointWidth(INKBrushType type, CGFloat size, double pressure)
+static INKPenTool INKPenToolForInput(NSString *input)
 {
-  if (type == INKBrushTypePen && pressure >= 0) {
-    return size * (0.4 + 0.6 * pressure);
+  if ([input isEqualToString:@"stylus"]) {
+    return INKPenToolStylus;
   }
-  return size;
+  return [input isEqualToString:@"mouse"] ? INKPenToolMouse : INKPenToolTouch;
+}
+
+// Pen strokes reload with Android's widths; marker and highlighter keep the brush size. The caller frees the result.
+static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
+{
+  NSUInteger count = values.count / INKStride;
+  double *widths = malloc(sizeof(double) * MAX(count, 1));
+  double *raw = info.type == INKBrushTypePen ? malloc(sizeof(double) * MAX(values.count, 1)) : NULL;
+  if (raw && widths) {
+    for (NSUInteger i = 0; i < values.count; i++) {
+      raw[i] = values[i].doubleValue;
+    }
+    INKPenWidths(raw, count, info.size, INKPenToolForInput(info.input), INKPenUnitLengthCm, widths);
+  } else if (widths) {
+    for (NSUInteger i = 0; i < count; i++) {
+      widths[i] = info.size;
+    }
+  }
+  free(raw);
+  return widths;
 }
 
 @implementation INKStrokeCodec
@@ -128,11 +149,12 @@ static CGFloat INKPointWidth(INKBrushType type, CGFloat size, double pressure)
     info.input = [stroke[@"input"] isKindOfClass:NSString.class] ? stroke[@"input"] : @"touch";
 
     NSMutableArray<PKStrokePoint *> *controlPoints = [NSMutableArray arrayWithCapacity:values.count / INKStride];
+    double *widths = INKPointWidths(info, values);
     for (NSUInteger i = 0; i < values.count; i += INKStride) {
       double pressure = values[i + 3].doubleValue;
       double tilt = values[i + 4].doubleValue;
       double orientation = values[i + 5].doubleValue;
-      CGFloat width = INKPointWidth(info.type, info.size, pressure);
+      CGFloat width = widths ? widths[i / INKStride] : info.size;
       PKStrokePoint *point =
           [[PKStrokePoint alloc] initWithLocation:CGPointMake(values[i].doubleValue, values[i + 1].doubleValue)
                                        timeOffset:values[i + 2].doubleValue / 1000.0
@@ -143,6 +165,7 @@ static CGFloat INKPointWidth(INKBrushType type, CGFloat size, double pressure)
                                          altitude:tilt >= 0 ? M_PI_2 - tilt : M_PI_2];
       [controlPoints addObject:point];
     }
+    free(widths);
     NSDate *created = [base dateByAddingTimeInterval:index * 0.001];
     PKStrokePath *path = [[PKStrokePath alloc] initWithControlPoints:controlPoints creationDate:created];
     PKInk *ink = [[PKInk alloc] initWithInkType:INKInkTypeForBrush(info.type) color:INKColorFromHex(info.color)];
