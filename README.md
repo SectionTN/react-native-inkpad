@@ -80,7 +80,7 @@ export function SignatureField() {
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `brush` | `{ type, color, size }` | black pen, size 3 | Brush for new strokes. `type` is `'pen'`, `'marker'` or `'highlighter'`. |
+| `brush` | `{ type, color, size }` | black pen, size 3 | Brush for new strokes. `type` is `'pen'`, `'marker'` or `'highlighter'`. Only the pen changes width with speed or stylus pressure. |
 | `tool` | `'draw' \| 'erase'` | `'draw'` | The eraser removes whole strokes. |
 | `inputMode` | `'any' \| 'stylus'` | `'any'` | With `'stylus'`, only a pen draws and fingers go to the parent. |
 | `editable` | `boolean` | `true` | Set to `false` to turn drawing off. |
