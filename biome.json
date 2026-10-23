@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!example/android", "!example/ios", "!.yarn", "!lib"]
+    "includes": ["**", "!example/android", "!example/ios", "!.yarn", "!lib", "!src/__fixtures__"]
   },
   "formatter": {
     "enabled": true,
