@@ -66,6 +66,9 @@ static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
     NSString *input = info ? info.input : @"touch";
     CGFloat brushSize = info ? info.size : [self estimatedSize:stroke];
     BOOL stylus = [input isEqualToString:@"stylus"];
+    BOOL hasPressure = info ? info.hasPressure : stylus;
+    BOOL hasTilt = info ? info.hasTilt : stylus;
+    BOOL hasOrientation = info ? info.hasOrientation : stylus;
 
     NSMutableArray<NSNumber *> *points = [NSMutableArray arrayWithCapacity:stroke.path.count * INKStride];
     long long previousTime = 0;
@@ -77,13 +80,9 @@ static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
       [points addObject:@(INKRound(location.x, 100))];
       [points addObject:@(INKRound(location.y, 100))];
       [points addObject:@(time)];
-      if (stylus) {
-        [points addObject:@(INKRound(MIN(1, MAX(0, point.force / INKMaxForce)), 1000))];
-        [points addObject:@(INKRound(MIN(M_PI_2, MAX(0, M_PI_2 - point.altitude)), 1000))];
-        [points addObject:@(INKRound(INKWrapAngle(point.azimuth), 1000))];
-      } else {
-        [points addObjectsFromArray:@[ @-1, @-1, @-1 ]];
-      }
+      [points addObject:hasPressure ? @(INKRound(MIN(1, MAX(0, point.force / INKMaxForce)), 1000)) : @-1];
+      [points addObject:hasTilt ? @(INKRound(MIN(M_PI_2, MAX(0, M_PI_2 - point.altitude)), 1000)) : @-1];
+      [points addObject:hasOrientation ? @(INKRound(INKWrapAngle(point.azimuth), 1000)) : @-1];
     }
     [strokes addObject:@{
       @"brush" : @{@"type" : INKBrushName(type), @"color" : color, @"size" : @(brushSize)},
@@ -147,6 +146,9 @@ static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
     info.color = [brush[@"color"] uppercaseString];
     info.size = [brush[@"size"] doubleValue];
     info.input = [stroke[@"input"] isKindOfClass:NSString.class] ? stroke[@"input"] : @"touch";
+    info.hasPressure = values[3].doubleValue >= 0;
+    info.hasTilt = values[4].doubleValue >= 0;
+    info.hasOrientation = values[5].doubleValue >= 0;
 
     NSMutableArray<PKStrokePoint *> *controlPoints = [NSMutableArray arrayWithCapacity:values.count / INKStride];
     double *widths = INKPointWidths(info, values);

@@ -9,6 +9,10 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy) NSString *color;
 @property (nonatomic) CGFloat size;
 @property (nonatomic, copy) NSString *input;
+// The optional channels the stroke's points carry, so a reloaded stroke saves the same document.
+@property (nonatomic) BOOL hasPressure;
+@property (nonatomic) BOOL hasTilt;
+@property (nonatomic) BOOL hasOrientation;
 @end
 
 @interface INKDecodedDrawing : NSObject

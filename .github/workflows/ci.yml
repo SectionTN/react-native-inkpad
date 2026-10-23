@@ -140,6 +140,11 @@ jobs:
           npx agent-device prepare ios-runner --platform ios --udid "$udid" --timeout 900000
           npx agent-device daemon stop
 
+      - name: Stroke codec on the simulator
+        env:
+          INKPAD_IOS_SIMULATOR: ${{ steps.simulator.outputs.udid }}
+        run: yarn vitest run src/__tests__/iosCodec.test.ts
+
       - name: End-to-end tests
         env:
           E2E_IOS_DEVICE: ${{ steps.simulator.outputs.udid }}

@@ -388,6 +388,10 @@ static NSString *INKInputName(UITouchType type)
     info.color = INKHexFromColor(_brushColor);
     info.size = _brushSize;
     info.input = INKInputName(_canvas.lastTouchType);
+    BOOL stylus = [info.input isEqualToString:@"stylus"];
+    info.hasPressure = stylus;
+    info.hasTilt = stylus;
+    info.hasOrientation = stylus;
     _brushes[created] = info;
   }
 }
