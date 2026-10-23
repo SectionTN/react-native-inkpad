@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { InkDocument, InkStroke } from '../document';
 import { ErrorCode } from '../errors';
+import { nibFor } from '../geometry/nib';
+import { outlinePath, widthPoints } from '../geometry/outline';
 import { toSVG } from '../svg/toSVG';
 
 const doc = (strokes: InkStroke[]): InkDocument => ({
@@ -47,6 +49,16 @@ describe('toSVG', () => {
     };
     expect(toSVG(doc([highlighter]))).toContain(
       'fill-opacity="0.4" style="mix-blend-mode:multiply"',
+    );
+  });
+
+  it('draws a highlighter with the Android chisel tip', () => {
+    const highlighter: InkStroke = {
+      ...line,
+      brush: { type: 'highlighter', color: '#FFE600FF', size: 4 },
+    };
+    expect(toSVG(doc([highlighter]))).toContain(
+      `d="${outlinePath(widthPoints(highlighter), nibFor(highlighter))}"`,
     );
   });
 

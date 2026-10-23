@@ -1,6 +1,7 @@
 import { hexToRgba } from '../color';
 import type { InkStroke } from '../document';
 import { type BackgroundFit, fitRect, type Size } from '../geometry/fit';
+import { nibFor } from '../geometry/nib';
 import { cachedWidthPoints, outlinePath, type WidthPoint, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
 import type { ImageLike } from './backgroundImage';
@@ -35,7 +36,7 @@ function fillStroke(
   ctx.fillStyle = `rgb(${r},${g},${b})`;
   ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = multiply ? 'multiply' : 'source-over';
-  ctx.fill(makePath(outlinePath(widths)));
+  ctx.fill(makePath(outlinePath(widths, nibFor(stroke))));
   ctx.restore();
 }
 

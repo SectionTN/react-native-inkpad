@@ -3,6 +3,7 @@ import type { InkDocument } from '../document';
 import { ErrorCode, InkpadError } from '../errors';
 import { boundsOf } from '../geometry/bounds';
 import type { BackgroundFit } from '../geometry/fit';
+import { nibFor } from '../geometry/nib';
 import { fmt, outlinePath, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
 import type { Trim } from '../types';
@@ -53,7 +54,7 @@ export function toSVG(doc: InkDocument, options: SvgRenderOptions = {}): string 
     const { r, g, b, alpha, multiply } = strokePaint(stroke.brush);
     const blend = multiply ? ' style="mix-blend-mode:multiply"' : '';
     body.push(
-      `<path d="${outlinePath(points)}" fill="rgb(${r},${g},${b})" fill-opacity="${fmt(alpha)}"${blend}/>`,
+      `<path d="${outlinePath(points, nibFor(stroke))}" fill="rgb(${r},${g},${b})" fill-opacity="${fmt(alpha)}"${blend}/>`,
     );
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${fmt(width)}" height="${fmt(height)}" viewBox="${fmt(x)} ${fmt(y)} ${fmt(width)} ${fmt(height)}">${body.join('')}</svg>`;

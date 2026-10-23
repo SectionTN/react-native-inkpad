@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
 import type { InputType } from '../document';
+import { crossSection, type Nib, nibFor } from '../geometry/nib';
 import { penWidths, UNIT_LENGTH_CM } from '../geometry/penModel';
 
 type Fixture = {
@@ -46,12 +47,43 @@ const FIXTURES: Fixture[] = [
   stroke('tap', 'touch', 10, 1, () => [50, 50]),
 ];
 
+// Highlighters keep their size, so their fixtures hold the chisel's cross-section across each point instead.
+const HIGHLIGHTERS: Fixture[] = [
+  stroke('highlighter-right', 'touch', 20, 30, (i) => [20 + i * 8, 100]),
+  stroke('highlighter-down', 'touch', 20, 30, (i) => [100, 20 + i * 8]),
+  stroke('highlighter-down-right', 'touch', 20, 30, (i) => [20 + i * 6, 20 + i * 6]),
+  stroke('highlighter-up-right', 'touch', 20, 30, (i) => [20 + i * 6, 300 - i * 6]),
+];
+
+function crossSections(fixture: Fixture): number[] {
+  const nib = nibFor({
+    brush: { type: 'highlighter', color: '#FFE600FF', size: fixture.size },
+    input: fixture.input,
+    points: fixture.points,
+  }) as Nib;
+  const count = fixture.points.length / 6;
+  return Array.from({ length: count }, (_, i) => {
+    const before = Math.max(0, i - 1) * 6;
+    const after = Math.min(count - 1, i + 1) * 6;
+    const dx = (fixture.points[after] as number) - (fixture.points[before] as number);
+    const dy = (fixture.points[after + 1] as number) - (fixture.points[before + 1] as number);
+    const length = Math.hypot(dx, dy);
+    return round(crossSection(nib, -dy / length, dx / length), 4);
+  });
+}
+
 it('keeps the shared pen width fixtures current', async () => {
-  const strokes = FIXTURES.map((fixture) => ({
+  const pens = FIXTURES.map((fixture) => ({
     ...fixture,
     brush: 'pen',
     widths: penWidths(fixture.points, fixture.size, fixture.input).map((w) => round(w, 4)),
   }));
+  const highlighters = HIGHLIGHTERS.map((fixture) => ({
+    ...fixture,
+    brush: 'highlighter',
+    widths: crossSections(fixture),
+  }));
+  const strokes = [...pens, ...highlighters];
   const json = `${JSON.stringify({ unitLengthCm: UNIT_LENGTH_CM, strokes }, null, 1)}\n`;
   await expect(json).toMatchFileSnapshot('../__fixtures__/pen-widths.json');
 });

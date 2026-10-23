@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { InkStroke } from '../document';
+import { nibFor } from '../geometry/nib';
 import { outlinePath, widthPoints } from '../geometry/outline';
 import type { ImageLike } from '../web/backgroundImage';
 import {
@@ -80,6 +81,11 @@ describe('render', () => {
   it('multiplies an opaque highlighter at 40%', () => {
     drawStroke(ctx, highlighter, fakePath);
     expect(calls[0]).toMatchObject({ globalAlpha: 0.4, globalCompositeOperation: 'multiply' });
+  });
+
+  it('draws a highlighter with the Android chisel tip', () => {
+    drawStroke(ctx, highlighter, fakePath);
+    expect(calls[0]?.d).toBe(outlinePath(widthPoints(highlighter), nibFor(highlighter)));
   });
 
   it('sets alpha and blending for each stroke', () => {
