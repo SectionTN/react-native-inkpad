@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { InkStroke, InputType } from '../document';
 import { cachedWidthPoints, outlinePath, widthPoints } from '../geometry/outline';
+import { penWidths } from '../geometry/penModel';
 
 const stroke = (
   type: 'pen' | 'marker',
@@ -21,20 +22,29 @@ describe('widthPoints', () => {
     ]);
   });
 
-  it('follows stylus pressure for the pen', () => {
-    expect(widthPoints(stroke('pen', [0, 0, 0, 0.5, -1, -1], 10, 'stylus'))[0]?.w).toBeCloseTo(7);
+  it('follows the pen model', () => {
+    const points: number[] = [];
+    for (let i = 0; i < 40; i++) points.push(i * 6, i * i * 0.2, i * 8, 0.6 + i * 0.01, -1, -1);
+    for (const input of ['touch', 'stylus'] as const) {
+      const widths = widthPoints(stroke('pen', points, 5, input)).map((point) => point.w);
+      expect(widths).toEqual(penWidths(points, 5, input));
+    }
   });
 
-  it('thins a fast touch stroke even when the screen reports pressure', () => {
-    const points = widthPoints(stroke('pen', [0, 0, 0, 1, -1, -1, 100, 0, 10, 1, -1, -1]));
-    expect(points[0]?.w).toBe(4);
-    expect(points[1]?.w).toBeCloseTo(1.2);
+  it('ignores pressure that a touch screen reports', () => {
+    const pressed = stroke('pen', [0, 0, 0, 1, -1, -1, 100, 0, 10, 1, -1, -1]);
+    const plain = stroke('pen', [0, 0, 0, -1, -1, -1, 100, 0, 10, -1, -1, -1]);
+    expect(widthPoints(pressed)).toEqual(widthPoints(plain));
   });
 
-  it('thins a fast pen stroke that has no pressure', () => {
-    const points = widthPoints(stroke('pen', [0, 0, 0, -1, -1, -1, 100, 0, 10, -1, -1, -1]));
-    expect(points[0]?.w).toBe(4);
-    expect(points[1]?.w).toBeCloseTo(1.2);
+  it('stays fast on long strokes', () => {
+    const points: number[] = [];
+    for (let i = 0; i < 5000; i++) points.push(i * 2, Math.sin(i / 20) * 50, i * 8, -1, -1, -1);
+    const long = stroke('pen', points);
+    widthPoints(long);
+    const started = performance.now();
+    widthPoints(long);
+    expect(performance.now() - started).toBeLessThan(20);
   });
 
   it('drops points closer than half a unit', () => {

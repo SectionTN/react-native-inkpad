@@ -42,141 +42,142 @@ const BEHAVIORS: readonly Behavior[] = [
   },
 ];
 
-type Raw = { t: number; x: number; y: number; p: number };
+// Raw points as parallel arrays: time (s), position, pressure.
+type Raw = { t: Float64Array; x: Float64Array; y: Float64Array; p: Float64Array };
 
+// Modeled points as parallel arrays: time (s), position, pressure, distance, velocity, acceleration.
 type Modeled = {
-  t: number;
-  x: number;
-  y: number;
-  p: number;
-  d: number;
-  vx: number;
-  vy: number;
-  ax: number;
-  ay: number;
+  t: number[];
+  x: number[];
+  y: number[];
+  p: number[];
+  d: number[];
+  vx: number[];
+  vy: number[];
+  ax: number[];
+  ay: number[];
 };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const inverseLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-
-function interpolate(a: Raw, b: Raw, t: number): Raw {
-  const r = inverseLerp(a.t, b.t, t);
-  return { t, x: lerp(a.x, b.x, r), y: lerp(a.y, b.y, r), p: lerp(a.p, b.p, r) };
-}
+const length = (x: number, y: number) => Math.sqrt(x * x + y * y);
 
 // Ink's sliding window model: trapezoid time averages over the window, upsampled to 180 Hz.
-function model(raw: readonly Raw[]): Modeled[] {
-  const out: Modeled[] = [];
-  const first = raw[0] as Raw;
-  const last = raw[raw.length - 1] as Raw;
+function model(raw: Raw): Modeled {
+  const m: Modeled = { t: [], x: [], y: [], p: [], d: [], vx: [], vy: [], ax: [], ay: [] };
+  const count = raw.t.length;
+  const channels = [raw.x, raw.y, raw.t, raw.p];
+  const time = (i: number) => raw.t[i] as number;
+  const value = (i: number, channel: number) => (channels[channel] as Float64Array)[i] as number;
+  const firstTime = time(0);
+  const lastTime = time(count - 1);
   let start = 0;
   let end = 0;
   const push = (t: number, x: number, y: number, p: number) => {
-    const previous = out[out.length - 1];
-    const step = previous ? Math.hypot(x - previous.x, y - previous.y) : 0;
-    if (previous && step <= EPSILON) return;
-    out.push({ t, x, y, p, d: (previous?.d ?? 0) + step, vx: 0, vy: 0, ax: 0, ay: 0 });
+    const n = m.t.length;
+    const step = n > 0 ? length(x - (m.x[n - 1] as number), y - (m.y[n - 1] as number)) : 0;
+    if (n > 0 && step <= EPSILON) return;
+    m.t.push(t);
+    m.x.push(x);
+    m.y.push(y);
+    m.p.push(p);
+    m.d.push(n > 0 ? (m.d[n - 1] as number) + step : 0);
   };
-  const modelAt = (time: number) => {
-    const half = Math.min(HALF_WINDOW, time - first.t, last.t - time);
-    const from = time - half;
-    const to = time + half;
-    while (start + 1 < raw.length && (raw[start + 1] as Raw).t <= from) start++;
-    while (end + 1 < raw.length && (raw[end] as Raw).t <= to) end++;
+  // Integral over [from, to] of one channel, linear between raw points.
+  const integral = (channel: number, from: number, to: number) => {
+    let sum = 0;
+    for (let i = start; i < end; i++) {
+      const ta = time(i);
+      const tb = time(i + 1);
+      const a = value(i, channel);
+      const b = value(i + 1, channel);
+      const va = ta < from ? lerp(a, b, inverseLerp(ta, tb, from)) : a;
+      const vb = tb > to ? lerp(a, b, inverseLerp(ta, tb, to)) : b;
+      sum += (Math.min(tb, to) - Math.max(ta, from)) * 0.5 * (va + vb);
+    }
+    return sum;
+  };
+  const modelAt = (at: number) => {
+    const half = Math.min(HALF_WINDOW, at - firstTime, lastTime - at);
+    const from = at - half;
+    const to = at + half;
+    while (start + 1 < count && time(start + 1) <= from) start++;
+    while (end + 1 < count && time(end) <= to) end++;
     const span = to - from;
     if (span <= 0) {
-      const input = raw[start] as Raw;
-      push(input.t, input.x, input.y, input.p);
+      push(time(start), value(start, 0), value(start, 1), value(start, 3));
       return;
     }
-    let x = 0;
-    let y = 0;
-    let p = 0;
-    for (let i = start; i < end; i++) {
-      let a = raw[i] as Raw;
-      let b = raw[i + 1] as Raw;
-      if (a.t < from) a = interpolate(a, b, from);
-      if (b.t > to) b = interpolate(a, b, to);
-      const dt = b.t - a.t;
-      x += dt * 0.5 * (a.x + b.x);
-      y += dt * 0.5 * (a.y + b.y);
-      p += dt * 0.5 * (a.p + b.p);
-    }
-    push(time, x / span, y / span, p / span);
+    const x = integral(0, from, to) / span;
+    const y = integral(1, from, to) / span;
+    push(at, x, y, integral(3, from, to) / span);
   };
   let previous = Number.NEGATIVE_INFINITY;
-  for (const input of raw) {
-    if (input.t <= previous) continue;
+  for (let i = 0; i < count; i++) {
+    const t = time(i);
+    if (t <= previous) continue;
     if (Number.isFinite(previous)) {
-      const gap = input.t - previous;
+      const gap = t - previous;
       const divisions = Math.min(Math.ceil(gap / UPSAMPLE_PERIOD), MAX_DIVISIONS);
-      for (let i = 1; i < divisions; i++) modelAt(previous + (gap / divisions) * i);
+      for (let k = 1; k < divisions; k++) modelAt(previous + (gap / divisions) * k);
     }
-    modelAt(input.t);
-    previous = input.t;
+    modelAt(t);
+    previous = t;
   }
-  derive(
-    out,
-    (m) => [m.x, m.y],
-    (m, x, y) => Object.assign(m, { vx: x, vy: y }),
-  );
-  derive(
-    out,
-    (m) => [m.vx, m.vy],
-    (m, x, y) => Object.assign(m, { ax: x, ay: y }),
-  );
-  return out;
+  derive(m.t, m.x, m.y, m.vx, m.vy);
+  derive(m.t, m.vx, m.vy, m.ax, m.ay);
+  return m;
 }
 
 // Average rate of change over the window around each point, clamped to the stroke.
-function derive(
-  points: Modeled[],
-  value: (m: Modeled) => [number, number],
-  write: (m: Modeled, x: number, y: number) => void,
-) {
-  const count = points.length;
-  const front = (points[0] as Modeled).t;
-  const back = (points[count - 1] as Modeled).t;
-  const at = (i: number, j: number, t: number): [number, number] => {
-    const a = points[i] as Modeled;
-    const b = points[j] as Modeled;
-    const r = inverseLerp(a.t, b.t, t);
-    const [ax, ay] = value(a);
-    const [bx, by] = value(b);
-    return [lerp(ax, bx, r), lerp(ay, by, r)];
-  };
-  const results: [number, number][] = [];
+function derive(t: number[], vx: number[], vy: number[], outX: number[], outY: number[]) {
+  const count = t.length;
+  const front = t[0] as number;
+  const back = t[count - 1] as number;
   let start = 0;
   let end = 0;
-  for (const point of points) {
-    const from = Math.max(point.t - HALF_WINDOW, front);
-    const to = Math.min(point.t + HALF_WINDOW, back);
+  for (let i = 0; i < count; i++) {
+    const at = t[i] as number;
+    const from = Math.max(at - HALF_WINDOW, front);
+    const to = Math.min(at + HALF_WINDOW, back);
     const span = to - from;
     if (span === 0) {
-      results.push([0, 0]);
+      outX.push(0);
+      outY.push(0);
       continue;
     }
-    while (start + 1 < count && (points[start + 1] as Modeled).t <= from) start++;
-    while (end + 1 < count && (points[end] as Modeled).t <= to) end++;
-    const [sx, sy] =
-      start + 1 < count ? at(start, start + 1, from) : value(points[start] as Modeled);
-    const [ex, ey] = end > 0 ? at(end - 1, end, to) : value(points[end] as Modeled);
-    results.push([(ex - sx) / span, (ey - sy) / span]);
+    while (start + 1 < count && (t[start + 1] as number) <= from) start++;
+    while (end + 1 < count && (t[end] as number) <= to) end++;
+    let sx = vx[start] as number;
+    let sy = vy[start] as number;
+    if (start + 1 < count) {
+      const r = inverseLerp(t[start] as number, t[start + 1] as number, from);
+      sx = lerp(sx, vx[start + 1] as number, r);
+      sy = lerp(sy, vy[start + 1] as number, r);
+    }
+    let ex = vx[end] as number;
+    let ey = vy[end] as number;
+    if (end > 0) {
+      const r = inverseLerp(t[end - 1] as number, t[end] as number, to);
+      ex = lerp(vx[end - 1] as number, ex, r);
+      ey = lerp(vy[end - 1] as number, ey, r);
+    }
+    outX.push((ex - sx) / span);
+    outY.push((ey - sy) / span);
   }
-  points.forEach((point, i) => {
-    const [x, y] = results[i] as [number, number];
-    write(point, x, y);
-  });
 }
+
+const bezier = (t: number, p1: number, p2: number) =>
+  3 * (1 - t) * (1 - t) * t * p1 + 3 * (1 - t) * t * t * p2 + t * t * t;
 
 // CSS ease-out, cubic-bezier(0, 0, 0.58, 1), solved for x by bisection.
 function easeOut(x: number): number {
-  const bezier = (t: number, p1: number, p2: number) =>
-    3 * (1 - t) * (1 - t) * t * p1 + 3 * (1 - t) * t * t * p2 + t * t * t;
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
   let lo = 0;
   let hi = 1;
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 24; i++) {
     const mid = (lo + hi) / 2;
     if (bezier(mid, 0, 0.58) < x) lo = mid;
     else hi = mid;
@@ -186,31 +187,33 @@ function easeOut(x: number): number {
 
 function sourceValue(
   source: Source,
-  points: readonly Modeled[],
+  m: Modeled,
   i: number,
   size: number,
   unitLengthCm: number,
   hasPressure: boolean,
 ): number | null {
-  const point = points[i] as Modeled;
+  const last = m.t.length - 1;
   switch (source) {
     case 'remaining':
-      return ((points[points.length - 1] as Modeled).d - point.d) / size;
+      return ((m.d[last] as number) - (m.d[i] as number)) / size;
     case 'directionY': {
-      const before = points[Math.max(0, i - 1)] as Modeled;
-      const after = points[Math.min(points.length - 1, i + 1)] as Modeled;
-      const dx = after.x - before.x;
-      const dy = after.y - before.y;
-      return dx === 0 && dy === 0 ? null : dy / Math.hypot(dx, dy);
+      const before = Math.max(0, i - 1);
+      const after = Math.min(last, i + 1);
+      const dx = (m.x[after] as number) - (m.x[before] as number);
+      const dy = (m.y[after] as number) - (m.y[before] as number);
+      return dx === 0 && dy === 0 ? null : dy / length(dx, dy);
     }
     case 'lateral': {
-      const direction = Math.atan2(point.vy, point.vx);
-      return (point.ax * -Math.sin(direction) + point.ay * Math.cos(direction)) * unitLengthCm;
+      const direction = Math.atan2(m.vy[i] as number, m.vx[i] as number);
+      const ax = m.ax[i] as number;
+      const ay = m.ay[i] as number;
+      return (ax * -Math.sin(direction) + ay * Math.cos(direction)) * unitLengthCm;
     }
     case 'pressure':
-      return hasPressure ? point.p : null;
+      return hasPressure ? (m.p[i] as number) : null;
     case 'speed':
-      return Math.hypot(point.vx, point.vy) * unitLengthCm;
+      return length(m.vx[i] as number, m.vy[i] as number) * unitLengthCm;
   }
 }
 
@@ -221,49 +224,52 @@ export function penWidths(
   input: InputType,
   unitLengthCm = UNIT_LENGTH_CM,
 ): number[] {
-  const raw: Raw[] = [];
-  for (let i = 0; i < points.length; i += POINT_STRIDE) {
-    raw.push({
-      t: (points[i + 2] as number) / 1000,
-      x: points[i] as number,
-      y: points[i + 1] as number,
-      p: points[i + 3] as number,
-    });
+  const stride = POINT_STRIDE;
+  const count = Math.floor(points.length / stride);
+  if (count === 0) return [];
+  const raw: Raw = {
+    t: new Float64Array(count),
+    x: new Float64Array(count),
+    y: new Float64Array(count),
+    p: new Float64Array(count),
+  };
+  for (let i = 0; i < count; i++) {
+    raw.x[i] = points[i * stride] as number;
+    raw.y[i] = points[i * stride + 1] as number;
+    raw.t[i] = (points[i * stride + 2] as number) / 1000;
+    raw.p[i] = points[i * stride + 3] as number;
   }
-  if (raw.length === 0) return [];
   const brushSize = clamp(size, MIN_SIZE, MAX_SIZE);
-  const hasPressure = (raw[0] as Raw).p >= 0;
-  const modeled = model(raw);
-  const damped: (number | null)[] = BEHAVIORS.map(() => null);
-  const multipliers = BEHAVIORS.map(() => 1);
-  const widths = modeled.map((point, i) => {
-    BEHAVIORS.forEach((behavior, b) => {
-      const enabled = !behavior.tools || behavior.tools.includes(input);
-      const value = enabled
-        ? sourceValue(behavior.source, modeled, i, brushSize, unitLengthCm, hasPressure)
-        : null;
+  const hasPressure = (raw.p[0] as number) >= 0;
+  const m = model(raw);
+  const behaviors = BEHAVIORS.filter((b) => !b.tools || b.tools.includes(input));
+  const damped: (number | null)[] = behaviors.map(() => null);
+  const multipliers = behaviors.map(() => 1);
+  const widths: number[] = [];
+  for (let i = 0; i < m.t.length; i++) {
+    const dt = i > 0 ? (m.t[i] as number) - (m.t[i - 1] as number) : 0;
+    let product = 1;
+    for (let b = 0; b < behaviors.length; b++) {
+      const behavior = behaviors[b] as Behavior;
+      const value = sourceValue(behavior.source, m, i, brushSize, unitLengthCm, hasPressure);
       if (value !== null) {
         let normalized = clamp(inverseLerp(behavior.start, behavior.end, value), 0, 1);
         if (behavior.easeOut) normalized = easeOut(normalized);
-        const previous = damped[b] ?? null;
-        const dt = point.t - ((modeled[i - 1] as Modeled | undefined)?.t ?? point.t);
-        damped[b] =
-          previous === null || behavior.gap === 0
-            ? normalized
-            : dt <= 0
-              ? previous
-              : lerp(normalized, previous, Math.exp(-dt / behavior.gap));
+        const previous = damped[b] as number | null;
+        if (previous === null || behavior.gap === 0) damped[b] = normalized;
+        else if (dt > 0) damped[b] = lerp(normalized, previous, Math.exp(-dt / behavior.gap));
       }
-      const current = damped[b] ?? null;
+      const current = damped[b] as number | null;
       if (current !== null) multipliers[b] = lerp(behavior.from, behavior.to, current);
-    });
-    const product = multipliers.reduce((a, b) => a * b, 1);
-    return brushSize * clamp(product, 0, MAX_MULTIPLIER);
-  });
+      product *= multipliers[b] as number;
+    }
+    widths.push(brushSize * clamp(product, 0, MAX_MULTIPLIER));
+  }
   const out: number[] = [];
   let j = 0;
-  for (const input of raw) {
-    while (j + 1 < modeled.length && (modeled[j + 1] as Modeled).t <= input.t) j++;
+  for (let i = 0; i < count; i++) {
+    const t = raw.t[i] as number;
+    while (j + 1 < m.t.length && (m.t[j + 1] as number) <= t) j++;
     out.push(widths[j] as number);
   }
   return out;

@@ -1,37 +1,22 @@
 import { type InkStroke, POINT_STRIDE } from '../document';
+import { penWidths } from './penModel';
 
 export type Vec = { x: number; y: number };
 export type WidthPoint = Vec & { w: number };
 
 const MIN_GAP = 0.5;
-const MIN_WIDTH_RATIO = 0.3;
-const VELOCITY_FILTER = 0.7;
 
-// A stylus pen follows pressure. Touch and mouse thin with speed, like signature_pad, since screens rarely report it.
+// Pen widths follow the Android pen; marker and highlighter keep the brush size.
 export function widthPoints(stroke: InkStroke): WidthPoint[] {
   const { brush, input, points } = stroke;
+  const widths = brush.type === 'pen' ? penWidths(points, brush.size, input) : null;
   const out: WidthPoint[] = [];
-  let velocity = 0;
-  let lastTime = 0;
   for (let i = 0; i < points.length; i += POINT_STRIDE) {
     const x = points[i] as number;
     const y = points[i + 1] as number;
-    const t = points[i + 2] as number;
-    const pressure = points[i + 3] as number;
     const previous = out[out.length - 1];
     if (previous && Math.hypot(x - previous.x, y - previous.y) < MIN_GAP) continue;
-    let w = brush.size;
-    if (brush.type === 'pen') {
-      if (input === 'stylus') {
-        if (pressure >= 0) w = brush.size * (0.4 + 0.6 * pressure);
-      } else if (previous) {
-        const speed = Math.hypot(x - previous.x, y - previous.y) / Math.max(1, t - lastTime);
-        velocity = VELOCITY_FILTER * speed + (1 - VELOCITY_FILTER) * velocity;
-        w = Math.max(brush.size / (velocity + 1), brush.size * MIN_WIDTH_RATIO);
-      }
-    }
-    out.push({ x, y, w });
-    lastTime = t;
+    out.push({ x, y, w: widths ? (widths[i / POINT_STRIDE] as number) : brush.size });
   }
   return out;
 }
