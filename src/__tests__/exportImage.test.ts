@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { InkDocument, InkStroke } from '../document';
 import type { NativeImageOptions } from '../imageOptions';
 import type { ImageLike } from '../web/backgroundImage';
-import { type ExportCanvas, type ExportDeps, exportArea, exportImage } from '../web/exportImage';
-import type { MakePath } from '../web/render';
+import { type ExportDeps, exportArea, exportImage } from '../web/exportImage';
+import { calls, depsWith, fakeCanvas, resetFakes } from './fakeCanvas';
 
 const marker = (points: number[]): InkStroke => ({
   brush: { type: 'marker', color: '#000000FF', size: 4 },
@@ -29,57 +29,14 @@ const opts = (over: Partial<NativeImageOptions>): NativeImageOptions => ({
   ...over,
 });
 
-type Call = { op: string; args: unknown[]; fillStyle: unknown };
-let calls: Call[];
-let urls: number;
-
-const fakePath: MakePath = (d) => ({ d }) as unknown as Path2D;
 const paper = {
   image: { naturalWidth: 200, naturalHeight: 100 } as ImageLike,
   fit: 'contain' as const,
 };
-const fakeCanvas = (blob: Blob | null): ExportCanvas => {
-  const state = {
-    fillStyle: '' as unknown,
-    globalAlpha: 1,
-    globalCompositeOperation: 'source-over',
-  };
-  const record =
-    (op: string) =>
-    (...args: unknown[]) => {
-      calls.push({ op, args, fillStyle: state.fillStyle });
-    };
-  const ctx = Object.assign(state, {
-    save() {},
-    restore() {},
-    setTransform: record('setTransform'),
-    fillRect: record('fillRect'),
-    fill: record('fill'),
-    beginPath() {},
-    rect() {},
-    clip: record('clip'),
-    drawImage: (_image: unknown, ...args: unknown[]) => record('drawImage')(...args),
-  }) as unknown as CanvasRenderingContext2D;
-  return {
-    width: 0,
-    height: 0,
-    getContext: () => ctx,
-    toBlob: (callback) => callback(blob),
-    toDataURL: () => 'data:image/png;base64,AAAA',
-  };
-};
-const depsWith = (blob: Blob | null): ExportDeps => ({
-  createCanvas: () => fakeCanvas(blob),
-  createObjectURL: () => `blob:fake/${++urls}`,
-  makePath: fakePath,
-});
 const deps = depsWith({} as Blob);
 const failingDeps = depsWith(null);
 
-beforeEach(() => {
-  calls = [];
-  urls = 0;
-});
+beforeEach(resetFakes);
 
 describe('exportArea', () => {
   it('sizes an untrimmed export to the canvas', () => {
