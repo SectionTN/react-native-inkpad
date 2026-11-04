@@ -6,7 +6,7 @@ import type { BackgroundFit } from '../geometry/fit';
 import { nibFor } from '../geometry/nib';
 import { fmt, outlinePath, widthPoints } from '../geometry/outline';
 import { strokePaint } from '../paint';
-import type { Trim } from '../types';
+import type { Trim } from '../trim';
 
 export type SvgRenderOptions = {
   trim?: Trim;
