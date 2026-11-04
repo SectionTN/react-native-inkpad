@@ -84,7 +84,7 @@ export function SignatureField() {
 | `tool` | `'draw' \| 'erase'` | `'draw'` | The eraser removes whole strokes. |
 | `inputMode` | `'any' \| 'stylus'` | `'any'` | With `'stylus'`, only a pen draws and fingers go to the parent. |
 | `editable` | `boolean` | `true` | Set to `false` to turn drawing off. |
-| `background` | `{ color, image, fit }` | transparent | Canvas color and an image under the ink, both exported. `image` takes an image source, `fit` is `'contain'` or `'cover'`. On web, an image from another origin needs CORS headers. |
+| `background` | `{ color, image, fit }` | transparent | Canvas color and an image under the ink, both exported. `image` takes an image source, `fit` is `'contain'` or `'cover'`. On web, an image from another origin needs CORS headers. Request `headers` on the image source aren't sent. |
 | `onStrokeStart` | `() => void` | | Called when a stroke starts. |
 | `onStrokeEnd` | `() => void` | | Called when a stroke ends. |
 | `onChange` | `(state) => void` | | Called after every change with `{ strokeCount, canUndo, canRedo }`. |
