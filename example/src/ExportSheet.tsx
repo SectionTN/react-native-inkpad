@@ -4,20 +4,35 @@ import SegmentedControl from '@expo/ui/community/segmented-control';
 import * as Sharing from 'expo-sharing';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import { Image, PixelRatio, Platform, Share, StyleSheet, Text, View } from 'react-native';
-import { type ImageResult, type InkCanvasRef, renderImage } from 'react-native-inkpad';
+import {
+  type Background,
+  type ImageResult,
+  type InkCanvasRef,
+  renderImage,
+} from 'react-native-inkpad';
 import { useTheme } from './theme';
 
 const FORMATS = ['PNG', 'SVG', 'JSON'] as const;
 type Format = (typeof FORMATS)[number];
 
-type Props = { canvas: RefObject<InkCanvasRef | null>; open: boolean; onClose(): void };
+type Props = {
+  canvas: RefObject<InkCanvasRef | null>;
+  background: Background;
+  open: boolean;
+  onClose(): void;
+};
 
 const kb = (text: string) => `${(text.length / 1024).toFixed(1)} KB`;
 
 // Enough to fill the preview; the full text would also become one huge accessibility label.
 const PREVIEW_CHARS = 700;
 
-export function ExportSheet({ canvas, open, onClose }: Props) {
+// On web, renderImage gives a blob: URL that holds the image until it is revoked.
+const revoke = (result: ImageResult | null) => {
+  if (Platform.OS === 'web' && result?.uri.startsWith('blob:')) URL.revokeObjectURL(result.uri);
+};
+
+export function ExportSheet({ canvas, background, open, onClose }: Props) {
   const theme = useTheme();
   const sheet = useRef<BottomSheetModal>(null);
   const [format, setFormat] = useState<Format>('PNG');
@@ -39,8 +54,11 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
       if (format === 'PNG') {
         const result = await ink.toImage({ trim: { padding: 8 } });
         const doc = await ink.getStrokes();
-        const thumb = await renderImage(doc, { maxSize: 160, trim: { padding: 8 } });
-        if (!live) return;
+        const thumb = await renderImage(doc, { maxSize: 160, trim: { padding: 8 }, background });
+        if (!live) {
+          revoke(thumb);
+          return;
+        }
         setImage(result);
         setThumbnail(thumb);
         setStatus(`PNG · ${result.width} x ${result.height} px`);
@@ -63,7 +81,9 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
     return () => {
       live = false;
     };
-  }, [canvas, open, format]);
+  }, [canvas, background, open, format]);
+
+  useEffect(() => () => revoke(thumbnail), [thumbnail]);
 
   const reload = async () => {
     const ink = canvas.current;
