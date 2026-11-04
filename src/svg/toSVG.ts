@@ -28,7 +28,7 @@ export function toSVG(doc: InkDocument, options: SvgRenderOptions = {}): string 
   if (options.trim) {
     const bounds = boundsOf(strokes.flatMap((s) => s.points));
     if (!bounds) throw new InkpadError(ErrorCode.EMPTY, 'nothing to trim: the canvas is empty');
-    const padding = typeof options.trim === 'object' ? options.trim.padding : 0;
+    const padding = typeof options.trim === 'object' ? Math.max(0, options.trim.padding) : 0;
     x = bounds.minX - padding;
     y = bounds.minY - padding;
     width = bounds.maxX - bounds.minX + padding * 2;

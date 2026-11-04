@@ -36,6 +36,12 @@ describe('toSVG', () => {
     );
   });
 
+  it('treats negative padding as none', () => {
+    expect(toSVG(doc([line]), { trim: { padding: -30 } })).toBe(
+      toSVG(doc([line]), { trim: { padding: 0 } }),
+    );
+  });
+
   it('draws the background color under the strokes', () => {
     expect(toSVG(doc([]), { backgroundColor: '#FFFFFFFF' })).toContain(
       '<rect x="0" y="0" width="300" height="200" fill="rgb(255,255,255)" fill-opacity="1"/>',
