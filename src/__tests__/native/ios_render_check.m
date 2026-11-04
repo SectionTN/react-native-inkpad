@@ -2,6 +2,7 @@
 #import <ImageIO/ImageIO.h>
 #import <PencilKit/PencilKit.h>
 
+#import "../../../ios/INKBackgroundLoader.h"
 #import "../../../ios/INKColor.h"
 #import "../../../ios/INKDocumentRenderer.h"
 #import "../../../ios/INKImageExporter.h"
@@ -128,12 +129,14 @@ static void compare(NSString *name, NSString *result, NSString *_Nullable expect
   printf("ok %s\n", name.UTF8String);
 }
 
-// The canvas exports what setStrokes installed, at its own size and color, so the reference is the exporter itself.
+// The canvas exports what setStrokes installed with its size and background, so the reference is the exporter.
 static void canvasCase(NSString *name, NSString *document, NSDictionary *overrides, INKInspect inspect)
 {
   NSString *optionsJSON = options(overrides);
   NSDictionary *size = parse(document)[@"size"];
   NSString *color = overrides[@"backgroundColor"];
+  NSString *uri = overrides[@"backgroundImageUri"];
+  BOOL cover = [overrides[@"backgroundFit"] isEqual:@"cover"];
   [INKDocumentRenderer renderDocument:document
                               options:optionsJSON
                            completion:track(^(NSString *result, NSString *code, NSString *message) {
@@ -146,17 +149,50 @@ static void canvasCase(NSString *name, NSString *document, NSDictionary *overrid
                              INKDecodedDrawing *decoded = [INKStrokeCodec decode:document
                                                                       errorCode:&decodeCode
                                                                         message:&decodeMessage];
-                             [INKImageExporter exportDrawing:decoded.drawing
-                                                  canvasSize:CGSizeMake([size[@"width"] doubleValue],
-                                                                        [size[@"height"] doubleValue])
-                                                 canvasColor:color ? INKColorFromHex(color) : UIColor.clearColor
-                                             backgroundImage:nil
-                                                       cover:NO
-                                                 optionsJSON:optionsJSON
-                                                  completion:track(^(NSString *expected, NSString *c, NSString *m) {
-                                                    compare(name, result, expected, inspect);
-                                                  })];
+                             INKExportCompletion done = track(^(NSString *expected, NSString *c, NSString *m) {
+                               compare(name, result, expected, inspect);
+                             });
+                             void (^reference)(UIImage *) = ^(UIImage *image) {
+                               [INKImageExporter
+                                   exportDrawing:decoded.drawing
+                                      canvasSize:CGSizeMake([size[@"width"] doubleValue], [size[@"height"] doubleValue])
+                                     canvasColor:color ? INKColorFromHex(color) : UIColor.clearColor
+                                 backgroundImage:image
+                                           cover:cover
+                                     optionsJSON:optionsJSON
+                                      completion:done];
+                             };
+                             if (uri == nil) {
+                               reference(nil);
+                               return;
+                             }
+                             [INKBackgroundLoader loadURI:uri
+                                               completion:^(UIImage *image, NSString *loadMessage) {
+                                                 reference(image);
+                                               }];
                            })];
+}
+
+// A 90x30 PNG, red on the left half and blue on the right, wider than the 360x440 sample.
+static NSString *stripesURI(void)
+{
+  UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
+  format.scale = 1;
+  format.preferredRange = UIGraphicsImageRendererFormatRangeStandard;
+  UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(90, 30)
+                                                                             format:format];
+  NSData *png = [renderer PNGDataWithActions:^(UIGraphicsImageRendererContext *context) {
+    [UIColor.redColor setFill];
+    [context fillRect:CGRectMake(0, 0, 45, 30)];
+    [UIColor.blueColor setFill];
+    [context fillRect:CGRectMake(45, 0, 45, 30)];
+  }];
+  return [@"data:image/png;base64," stringByAppendingString:[png base64EncodedStringWithOptions:0]];
+}
+
+static BOOL near(const uint8_t *pixel, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+  return abs(pixel[0] - r) <= 2 && abs(pixel[1] - g) <= 2 && abs(pixel[2] - b) <= 2 && pixel[3] == a;
 }
 
 static void errorCase(NSString *name, NSString *document, NSDictionary *overrides, NSString *code, NSString *prefix)
@@ -201,6 +237,23 @@ int main(int argc, char **argv)
                  return MAX(width, height) == 160
                      ? nil
                      : [NSString stringWithFormat:@"the longest side is %zu", MAX(width, height)];
+               });
+    NSString *stripes = stripesURI();
+    canvasCase(@"canvas image contain", sample, @{@"backgroundImageUri" : stripes, @"backgroundFit" : @"contain"},
+               ^NSString *(size_t width, size_t height, const uint8_t *rgba) {
+                 const uint8_t *left = rgba + (height / 2 * width + 3) * 4;
+                 const uint8_t *right = rgba + (height / 2 * width + width - 4) * 4;
+                 return rgba[3] == 0 && near(left, 0xFF, 0, 0, 0xFF) && near(right, 0, 0, 0xFF, 0xFF)
+                     ? nil
+                     : @"the image is not centered with bands above and below";
+               });
+    canvasCase(@"canvas image cover", sample, @{@"backgroundImageUri" : stripes, @"backgroundFit" : @"cover"},
+               ^NSString *(size_t width, size_t height, const uint8_t *rgba) {
+                 const uint8_t *left = rgba + (3 * width + 3) * 4;
+                 const uint8_t *right = rgba + (3 * width + width - 4) * 4;
+                 return near(left, 0xFF, 0, 0, 0xFF) && near(right, 0, 0, 0xFF, 0xFF)
+                     ? nil
+                     : @"the image does not fill the canvas";
                });
 
     NSString *empty = @"{\"version\":1,\"size\":{\"width\":320,\"height\":240},\"strokes\":[]}";
