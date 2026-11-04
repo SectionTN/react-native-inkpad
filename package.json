@@ -141,6 +141,9 @@
         "InkpadView": {
           "className": "INKPadView"
         }
+      },
+      "modulesProvider": {
+        "Inkpad": "INKInkpadModule"
       }
     }
   },

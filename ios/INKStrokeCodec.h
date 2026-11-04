@@ -18,6 +18,8 @@ NS_ASSUME_NONNULL_BEGIN
 @interface INKDecodedDrawing : NSObject
 @property (nonatomic, strong) PKDrawing *drawing;
 @property (nonatomic, copy) NSDictionary<NSDate *, INKBrushInfo *> *brushes;
+// Zero where the document has no numeric size; the canvas keeps its own.
+@property (nonatomic) CGSize size;
 @end
 
 @interface INKStrokeCodec : NSObject

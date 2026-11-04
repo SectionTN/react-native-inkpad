@@ -32,6 +32,15 @@ static INKPenTool INKPenToolForInput(NSString *input)
   return [input isEqualToString:@"mouse"] ? INKPenToolMouse : INKPenToolTouch;
 }
 
+static CGSize INKDocumentSize(id value)
+{
+  NSDictionary *size = [value isKindOfClass:NSDictionary.class] ? value : nil;
+  id width = size[@"width"];
+  id height = size[@"height"];
+  return CGSizeMake([width isKindOfClass:NSNumber.class] ? [width doubleValue] : 0,
+                    [height isKindOfClass:NSNumber.class] ? [height doubleValue] : 0);
+}
+
 // Pen strokes reload with Android's widths; marker and highlighter keep the brush size. The caller frees the result.
 static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
 {
@@ -181,6 +190,7 @@ static double *INKPointWidths(INKBrushInfo *info, NSArray<NSNumber *> *values)
   INKDecodedDrawing *decoded = [INKDecodedDrawing new];
   decoded.drawing = [[PKDrawing alloc] initWithStrokes:result];
   decoded.brushes = brushes;
+  decoded.size = INKDocumentSize(root[@"size"]);
   return decoded;
 }
 
