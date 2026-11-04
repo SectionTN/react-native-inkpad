@@ -3657,6 +3657,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native/normalize-colors@npm:*":
+  version: 0.88.1
+  resolution: "@react-native/normalize-colors@npm:0.88.1"
+  checksum: 10c0/3db7e7b7ac754f648759cced1cccfb0e2526ed5088495312da7d2b797e1bb1b9df351fd583e4c6bf09fd5c99a757335bc503736673962df173fe9afeab6c1205
+  languageName: node
+  linkType: hard
+
 "@react-native/normalize-colors@npm:0.86.3":
   version: 0.86.3
   resolution: "@react-native/normalize-colors@npm:0.86.3"
@@ -8654,6 +8661,7 @@ __metadata:
     "@e2e-dev/mobile": "npm:0.12.0"
     "@e2e-dev/web": "npm:0.14.0"
     "@react-native/babel-preset": "npm:0.86.2"
+    "@react-native/normalize-colors": "npm:*"
     "@release-it/conventional-changelog": "npm:^12.0.0"
     "@types/node": "npm:^26.6.4"
     "@types/react": "npm:^19.2.0"
