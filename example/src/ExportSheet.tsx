@@ -54,14 +54,20 @@ export function ExportSheet({ canvas, background, open, onClose }: Props) {
       if (format === 'PNG') {
         const result = await ink.toImage({ trim: { padding: 8 } });
         const doc = await ink.getStrokes();
-        const thumb = await renderImage(doc, { maxSize: 160, trim: { padding: 8 }, background });
+        let thumb: ImageResult | null = null;
+        let thumbError = '';
+        try {
+          thumb = await renderImage(doc, { maxSize: 160, trim: { padding: 8 }, background });
+        } catch (error) {
+          thumbError = ` · no thumbnail: ${(error as Error).message}`;
+        }
         if (!live) {
           revoke(thumb);
           return;
         }
         setImage(result);
         setThumbnail(thumb);
-        setStatus(`PNG · ${result.width} x ${result.height} px`);
+        setStatus(`PNG · ${result.width} x ${result.height} px${thumbError}`);
       } else if (format === 'SVG') {
         const svg = await ink.toSVG({ trim: true });
         if (!live) return;
