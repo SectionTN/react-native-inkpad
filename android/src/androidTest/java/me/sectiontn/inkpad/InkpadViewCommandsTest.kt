@@ -94,7 +94,7 @@ class InkpadViewCommandsTest {
 
   // Two rounds, since a load that lands on the main thread can start a save on the document thread.
   private fun settle() = repeat(2) {
-    InkpadView.WORKER.submit {}.get()
+    InkpadExecutors.worker.submit {}.get()
     instrumentation.waitForIdleSync()
   }
 
