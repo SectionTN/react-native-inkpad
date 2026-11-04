@@ -33,6 +33,15 @@ jobs:
       - name: Build package
         run: yarn prepare
 
+      - name: Run the built svg entry in Node
+        run: |
+          node --input-type=module -e "
+            import { renderSVG } from 'react-native-inkpad/svg';
+            const doc = { version: 1, size: { width: 10, height: 10 }, strokes: [] };
+            const svg = renderSVG(doc, { background: { color: 'white' } });
+            if (!svg.includes('<rect')) process.exit(1);
+          "
+
   android:
     runs-on: ubuntu-latest
     steps:
