@@ -1,6 +1,6 @@
-import { type RefObject, useState } from 'react';
+import { type RefObject, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { InkCanvas, type InkCanvasRef, type InkState } from 'react-native-inkpad';
+import { type Background, InkCanvas, type InkCanvasRef, type InkState } from 'react-native-inkpad';
 import { brushFor, COLORS, type Tool } from './controls';
 import { Dock } from './Dock';
 import { ExportSheet } from './ExportSheet';
@@ -22,6 +22,10 @@ export function DrawScreen({ canvas, paper, pencilOnly, onChange, onError }: Pro
   const [color, setColor] = useState(COLORS[0]?.value ?? '#000000');
   const [size, setSize] = useState(4);
   const [exporting, setExporting] = useState(false);
+  const background = useMemo<Background>(
+    () => ({ color: '#FFFFFF', image: paper ? PAPER : undefined, fit: 'cover' }),
+    [paper],
+  );
 
   return (
     <View style={styles.root}>
@@ -30,7 +34,7 @@ export function DrawScreen({ canvas, paper, pencilOnly, onChange, onError }: Pro
         testID="canvas"
         tool={tool === 'eraser' ? 'erase' : 'draw'}
         brush={brushFor(tool, color, size)}
-        background={{ color: '#FFFFFF', image: paper ? PAPER : undefined, fit: 'cover' }}
+        background={background}
         inputMode={pencilOnly ? 'stylus' : 'any'}
         onError={(error) => onError(error.code)}
         style={[styles.canvas, { borderColor: theme.separator }]}
@@ -45,7 +49,12 @@ export function DrawScreen({ canvas, paper, pencilOnly, onChange, onError }: Pro
         onSize={setSize}
         onExport={() => setExporting(true)}
       />
-      <ExportSheet canvas={canvas} open={exporting} onClose={() => setExporting(false)} />
+      <ExportSheet
+        canvas={canvas}
+        background={background}
+        open={exporting}
+        onClose={() => setExporting(false)}
+      />
     </View>
   );
 }
