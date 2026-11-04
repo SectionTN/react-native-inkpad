@@ -82,6 +82,8 @@ export type ImageOptions = {
   quality?: number;
   /** Pixels per layout unit. Default: the screen's pixel ratio. */
   scale?: number;
+  /** Longest side in pixels. Lowers the scale when the image would be bigger; never raises it. */
+  maxSize?: number;
   /** Default `false`. */
   trim?: Trim;
   /** Keeps the canvas color and background image in the export. Default `true`. */

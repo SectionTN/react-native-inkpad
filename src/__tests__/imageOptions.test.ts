@@ -7,6 +7,7 @@ describe('toNativeImageOptions', () => {
       format: 'png',
       quality: 0.9,
       scale: 3,
+      maxSize: 0,
       trim: false,
       padding: 0,
       background: true,
@@ -31,6 +32,7 @@ describe('toNativeImageOptions', () => {
       format: 'jpeg',
       quality: 1,
       scale: 2,
+      maxSize: 0,
       trim: true,
       padding: 8,
       background: false,
@@ -40,6 +42,13 @@ describe('toNativeImageOptions', () => {
 
   it('falls back to the device scale when the scale is not positive', () => {
     expect(toNativeImageOptions({ scale: 0 }, 2).scale).toBe(2);
+  });
+
+  it('maps maxSize', () => {
+    expect(toNativeImageOptions({ maxSize: 160.9 }, 2).maxSize).toBe(160);
+    for (const maxSize of [0, -5, Number.POSITIVE_INFINITY, Number.NaN]) {
+      expect(toNativeImageOptions({ maxSize }, 2).maxSize).toBe(0);
+    }
   });
 });
 

@@ -8,6 +8,7 @@ internal class ExportOptions(
   val jpeg: Boolean,
   val quality: Float,
   val scale: Float,
+  val maxSize: Int,
   val trim: Boolean,
   val padding: Float,
   val background: Boolean,
@@ -16,7 +17,10 @@ internal class ExportOptions(
   val backgroundImageUri: String?,
   val backgroundFit: BackgroundFit?,
 ) {
-  fun pixels(units: Float): Int = maxOf(1, (units * scale).roundToInt())
+  fun scaleFor(areaWidth: Float, areaHeight: Float): Float =
+    if (maxSize > 0) minOf(scale, maxSize / maxOf(areaWidth, areaHeight)) else scale
+
+  fun pixels(units: Float, scale: Float): Int = maxOf(1, (units * scale).roundToInt())
 
   companion object {
     fun parse(json: String?): ExportOptions {
@@ -26,6 +30,7 @@ internal class ExportOptions(
         jpeg = o.optString("format") == "jpeg",
         quality = o.optDouble("quality", 0.9).toFloat().coerceIn(0f, 1f),
         scale = if (scale > 0f) scale else 1f,
+        maxSize = o.optInt("maxSize", 0).coerceAtLeast(0),
         trim = o.optBoolean("trim", false),
         padding = o.optDouble("padding", 0.0).toFloat().coerceAtLeast(0f),
         background = o.optBoolean("background", true),
