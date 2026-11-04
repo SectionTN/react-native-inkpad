@@ -3,8 +3,8 @@ import { BottomSheetModal, BottomSheetView } from '@expo/ui/community/bottom-she
 import SegmentedControl from '@expo/ui/community/segmented-control';
 import * as Sharing from 'expo-sharing';
 import { type RefObject, useEffect, useRef, useState } from 'react';
-import { Image, Platform, Share, StyleSheet, Text, View } from 'react-native';
-import type { ImageResult, InkCanvasRef } from 'react-native-inkpad';
+import { Image, PixelRatio, Platform, Share, StyleSheet, Text, View } from 'react-native';
+import { type ImageResult, type InkCanvasRef, renderImage } from 'react-native-inkpad';
 import { useTheme } from './theme';
 
 const FORMATS = ['PNG', 'SVG', 'JSON'] as const;
@@ -22,6 +22,7 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
   const sheet = useRef<BottomSheetModal>(null);
   const [format, setFormat] = useState<Format>('PNG');
   const [image, setImage] = useState<ImageResult | null>(null);
+  const [thumbnail, setThumbnail] = useState<ImageResult | null>(null);
   const [text, setText] = useState('');
   const [status, setStatus] = useState('');
 
@@ -37,8 +38,11 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
     const run = async () => {
       if (format === 'PNG') {
         const result = await ink.toImage({ trim: { padding: 8 } });
+        const doc = await ink.getStrokes();
+        const thumb = await renderImage(doc, { maxSize: 160, trim: { padding: 8 } });
         if (!live) return;
         setImage(result);
+        setThumbnail(thumb);
         setStatus(`PNG · ${result.width} x ${result.height} px`);
       } else if (format === 'SVG') {
         const svg = await ink.toSVG({ trim: true });
@@ -108,6 +112,25 @@ export function ExportSheet({ canvas, open, onClose }: Props) {
             </Text>
           )}
         </View>
+        {showImage && thumbnail ? (
+          <View style={styles.thumbnailRow}>
+            <Image
+              testID="thumbnail"
+              source={{ uri: thumbnail.uri }}
+              style={[
+                styles.thumbnail,
+                {
+                  width: thumbnail.width / PixelRatio.get(),
+                  height: thumbnail.height / PixelRatio.get(),
+                  borderColor: theme.separator,
+                },
+              ]}
+            />
+            <Text testID="thumbnail-size" style={[styles.caption, { color: theme.secondaryText }]}>
+              {`Thumbnail · ${thumbnail.width} x ${thumbnail.height} px`}
+            </Text>
+          </View>
+        ) : null}
         <Text testID="export-status" style={[styles.caption, { color: theme.secondaryText }]}>
           {status}
         </Text>
@@ -137,6 +160,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   image: { flex: 1 },
+  thumbnailRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  thumbnail: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   code: { fontFamily: Platform.select({ ios: 'Menlo', default: 'monospace' }), fontSize: 11 },
   caption: { fontSize: 13, textAlign: 'center' },
   actions: { flexDirection: 'row', justifyContent: 'center', gap: 12 },

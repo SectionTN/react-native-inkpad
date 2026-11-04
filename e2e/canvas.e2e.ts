@@ -35,6 +35,10 @@ test('loads the sample, exports it and loads it back', async ({ app, screen }) =
   await expect(screen.getByTestId('status')).toContainText(strokes);
   await tapCenter(screen.getByLabel('Export'));
   await expect(screen.getByTestId('export-status')).toContainText('PNG · ');
+  const caption = await screen.getByTestId('thumbnail-size').textContent();
+  const [, width, height] = caption?.match(/(\d+) x (\d+)/) ?? [];
+  expect(Math.max(Number(width), Number(height)), caption ?? 'no caption').toBe(160);
+  await expect(screen.getByTestId('thumbnail')).toBeVisible();
   await tapCenter(screen.getByText('SVG'));
   await expect(screen.getByTestId('export-status')).toContainText('SVG · ');
   await tapCenter(screen.getByText('JSON'));
