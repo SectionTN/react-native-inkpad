@@ -98,8 +98,45 @@ export function SignatureField() {
 | `clear()` | Remove every stroke. |
 | `getStrokes()` | Get the strokes as a plain object you can store as JSON. |
 | `setStrokes(doc)` | Replace the drawing with strokes from `getStrokes()`. |
-| `toImage({ format, quality, scale, trim, background, base64 })` | Export a PNG or JPEG. Resolves to `{ uri, width, height, base64? }`. On web, `uri` is a `blob:` URL. |
+| `toImage({ format, quality, scale, maxSize, trim, background, base64 })` | Export a PNG or JPEG. `maxSize` caps the longest side in pixels. Resolves to `{ uri, width, height, base64? }`. On web, `uri` is a `blob:` URL. |
 | `toSVG({ trim, background })` | Export an SVG string. It links the background image by URI. |
+
+### Render without a canvas
+
+`renderImage(doc, options)` and `renderSVG(doc, options)` turn a document from `getStrokes()` into an image or an SVG string without a mounted `InkCanvas`. Use them for thumbnails and lists.
+
+| Function | Returns | Options |
+| --- | --- | --- |
+| `renderImage(doc, options)` | `Promise<{ uri, width, height, base64? }>`, the same result as `toImage`. | The `toImage` options, except `background` is `{ color, image, fit }` like the prop. |
+| `renderSVG(doc, options)` | An SVG string, synchronously. | `{ trim, background }`, with the same `background`. |
+
+A document has no background, so the default is transparent. `maxSize` is the longest side in pixels. It lowers `scale` for an image that would be bigger and never raises it, and a value below 1 is ignored.
+
+```tsx
+import { renderImage } from 'react-native-inkpad';
+
+const thumb = await renderImage(doc, {
+  maxSize: 256,
+  trim: { padding: 8 },
+  background: { color: '#FFFFFF' },
+});
+```
+
+`renderImage` rejects and `renderSVG` throws an `InkpadError`. `renderImage` fails with `E_EXPORT_FAILED` if the native module is missing, so rebuild the app.
+
+#### On a server
+
+The `react-native-inkpad/svg` entry exports `renderSVG`, `validateDocument`, `InkpadError` and `ErrorCode`, and doesn't load React Native.
+
+```js
+import { renderSVG } from 'react-native-inkpad/svg';
+
+const svg = renderSVG(doc, { trim: { padding: 8 }, background: { color: 'hsl(0 0% 100%)' } });
+```
+
+Its `background` is `{ color?, image?: { uri }, fit? }`. `color` takes a hex, `rgb()`, `hsl()`, `hwb()` or named color, and one it can't parse throws `E_EXPORT_FAILED`. The SVG links the background image by URI.
+
+npm 7+ installs the `react` and `react-native` peers on the server anyway, though nothing loads them.
 
 ### Errors
 
@@ -109,11 +146,11 @@ Failed calls throw an `InkpadError`. Its `code` is one of:
 | --- | --- |
 | `E_NOT_MOUNTED` | The canvas isn't mounted, or it unmounted before the call finished. |
 | `E_TIMEOUT` | The native view didn't answer within 15 seconds. |
-| `E_INVALID_DOCUMENT` | `setStrokes()` got a malformed document. |
-| `E_UNSUPPORTED_VERSION` | The document was saved by a newer version of the library. |
-| `E_EMPTY` | `trim` was set but the canvas is empty. |
+| `E_INVALID_DOCUMENT` | `setStrokes()`, `renderImage()` or `renderSVG()` got a malformed document. |
+| `E_UNSUPPORTED_VERSION` | `setStrokes()`, `renderImage()` or `renderSVG()` got a document saved by a newer version of the library. |
+| `E_EMPTY` | `trim` was set but the canvas, or the document given to `renderImage()` or `renderSVG()`, has no strokes. |
 | `E_EXPORT_FAILED` | The image couldn't be created or saved. |
-| `E_IMAGE_LOAD` | The background image couldn't be loaded. It goes to `onError`. |
+| `E_IMAGE_LOAD` | The background image couldn't be loaded, or `renderImage()` or `renderSVG()` got an image with no usable URI, such as a numeric `require()` asset on web. On the canvas it goes to `onError`. |
 | `E_NATIVE` | Any other native error. |
 
 ## Migrating from react-native-signature-canvas
@@ -148,6 +185,10 @@ From 1.0, releases follow [semver](https://semver.org):
 - [x] 0.3: Web
 - [x] 0.4: Background images, stylus-only mode and `onError`
 - [x] 1.0: First stable release
+- [x] 1.1: Render a document without a canvas
+- [ ] 1.2: Zoom and pan
+- [ ] 1.3: Point eraser and stylus extras
+- [ ] 1.4: Lasso select and move
 
 ## Contributing
 
