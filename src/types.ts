@@ -3,8 +3,9 @@ import type { ColorValue, ImageSourcePropType, ViewProps } from 'react-native';
 import type { BrushType, InkDocument } from './document';
 import type { InkpadError } from './errors';
 import type { BackgroundFit } from './geometry/fit';
+import type { Trim } from './trim';
 
-export type { BackgroundFit, BrushType };
+export type { BackgroundFit, BrushType, Trim };
 
 /** The brush new strokes use. */
 export type Brush = {
@@ -72,9 +73,6 @@ export type InkCanvasProps = ViewProps & {
   onError?: (error: InkpadError) => void;
 };
 
-/** `true` crops the export to the strokes; `{ padding }` also adds room around them, in layout units. */
-export type Trim = boolean | { padding: number };
-
 export type ImageOptions = {
   /** Default `'png'`. */
   format?: 'png' | 'jpeg';
@@ -108,4 +106,17 @@ export type SvgOptions = {
   trim?: Trim;
   /** Keeps the canvas color and background image in the SVG. Default `true`. */
   background?: boolean;
+};
+
+/** Options for `renderImage`. The background is the canvas's `Background`, not a flag; default: none (transparent). */
+export type RenderImageOptions = Omit<ImageOptions, 'background'> & {
+  background?: Background;
+};
+
+/** Options for `renderSVG`. */
+export type RenderSVGOptions = {
+  /** Default `false`. */
+  trim?: Trim;
+  /** Canvas color and background image drawn under the strokes. Default: none. */
+  background?: Background;
 };
