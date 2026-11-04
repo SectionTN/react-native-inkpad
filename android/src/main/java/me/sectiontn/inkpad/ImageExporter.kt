@@ -17,8 +17,13 @@ import java.util.UUID
 import kotlin.math.roundToInt
 
 internal object ImageExporter {
-  private val renderer by lazy { CanvasStrokeRenderer.create() }
-  private val imagePaint = Paint(Paint.FILTER_BITMAP_FLAG)
+  // One per thread: Ink renderers keep unsynchronized scratch state, and exports and renders run at once.
+  private val renderer = object : ThreadLocal<CanvasStrokeRenderer>() {
+    override fun initialValue(): CanvasStrokeRenderer = CanvasStrokeRenderer.create()
+  }
+  private val imagePaint = object : ThreadLocal<Paint>() {
+    override fun initialValue() = Paint(Paint.FILTER_BITMAP_FLAG)
+  }
 
   fun export(
     context: Context,
@@ -56,7 +61,8 @@ internal object ImageExporter {
       }
       canvas.concat(transform)
       if (options.background && image != null) drawImage(canvas, image, width, height, fit)
-      for (item in strokes) renderer.draw(canvas, item.stroke, transform)
+      val strokeRenderer = renderer.get()!!
+      for (item in strokes) strokeRenderer.draw(canvas, item.stroke, transform)
       val bytes = ByteArrayOutputStream().use { out ->
         val format = if (options.jpeg) Bitmap.CompressFormat.JPEG else Bitmap.CompressFormat.PNG
         bitmap.compress(format, (options.quality * 100).roundToInt(), out)
@@ -79,7 +85,7 @@ internal object ImageExporter {
     val rect = Fit.rect(image.width.toFloat(), image.height.toFloat(), width, height, fit)
     val saved = canvas.save()
     canvas.clipRect(0f, 0f, width, height)
-    canvas.drawBitmap(image, null, RectF(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height), imagePaint)
+    canvas.drawBitmap(image, null, RectF(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height), imagePaint.get())
     canvas.restoreToCount(saved)
   }
 }

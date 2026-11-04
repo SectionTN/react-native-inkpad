@@ -24,7 +24,6 @@ import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.BackgroundStyleApplicator
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.FutureTask
 
@@ -218,7 +217,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       result.getOrNull()
     }
     imageLoad = load
-    LOADER.execute(load)
+    InkpadExecutors.loader.execute(load)
   }
 
   private fun finishBackground(generation: Int, result: Result<Bitmap>) {
@@ -266,7 +265,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       val canvasWidth = width / density
       val canvasHeight = height / density
       // A long drawing serializes to a large JSON string, so it belongs off the UI thread like the export.
-      WORKER.execute {
+      InkpadExecutors.worker.execute {
         val result = runCatching {
           DocumentJson.write(Doc(canvasWidth, canvasHeight, snapshot.map(InkConverter::fromInk)))
         }
@@ -287,7 +286,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     val unitLengthCm = InkConverter.strokeUnitLengthCm(density, metrics.xdpi, metrics.ydpi)
     val slot = commands.reserve()
     // Loading a saved drawing builds an ink stroke per point, which is as heavy as reading one back.
-    WORKER.execute {
+    InkpadExecutors.worker.execute {
       val result = runCatching {
         DocumentJson.parse(json ?: "").strokes.map { InkConverter.toInk(it, unitLengthCm) }
       }
@@ -321,7 +320,7 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
       val snapshot = strokes.toList()
       val canvasWidth = width / density
       val canvasHeight = height / density
-      EXPORTER.execute {
+      InkpadExecutors.exporter.execute {
         val image = runCatching { load?.get() }.getOrNull()
         val result = runCatching {
           ImageExporter.export(reactContext, snapshot, canvasWidth, canvasHeight, color, image, fit, options)
@@ -385,10 +384,5 @@ class InkpadView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
   companion object {
     private const val ERASER_RADIUS = 10f
-
-    // Saves and loads documents. Exports have their own thread, since they can wait on the background image.
-    internal val WORKER = Executors.newSingleThreadExecutor()
-    private val EXPORTER = Executors.newSingleThreadExecutor()
-    private val LOADER = Executors.newCachedThreadPool()
   }
 }
