@@ -1,5 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { uriOf } from '../web/imageSource';
+import { renderSvgWith } from '../render/core';
+import { resolveImage } from '../render/resolveImage.web';
+import { absoluteUri, uriOf } from '../web/imageSource';
+
+describe('absoluteUri', () => {
+  it('resolves a relative URI against the base', () => {
+    expect(absoluteUri('/assets/a.png', 'https://x.test/app/')).toBe('https://x.test/assets/a.png');
+    expect(absoluteUri('a.png', 'https://x.test/app/')).toBe('https://x.test/app/a.png');
+  });
+
+  it('keeps an absolute URI without a base', () => {
+    expect(absoluteUri('https://x.test/a.png', undefined)).toBe('https://x.test/a.png');
+  });
+
+  it('has no URI for one that does not parse', () => {
+    expect(absoluteUri('http://[', 'https://x.test/')).toBeUndefined();
+    expect(absoluteUri('a.png', undefined)).toBeUndefined();
+  });
+});
+
+describe('web resolveImage', () => {
+  it('turns a malformed URI into E_IMAGE_LOAD', () => {
+    const doc = { version: 1, size: { width: 10, height: 10 }, strokes: [] };
+    const resolvers = { color: () => undefined, image: resolveImage };
+    const options = { background: { image: { uri: 'http://[' } } };
+    expect(() => renderSvgWith(doc, options, resolvers)).toThrow(
+      expect.objectContaining({ code: 'E_IMAGE_LOAD' }),
+    );
+  });
+});
 
 describe('uriOf', () => {
   it('reads every source shape a web app passes', () => {
