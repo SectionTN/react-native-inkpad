@@ -21,6 +21,7 @@ const opts = (over: Partial<NativeImageOptions>): NativeImageOptions => ({
   format: 'png',
   quality: 0.9,
   scale: 2,
+  maxSize: 0,
   trim: false,
   padding: 0,
   background: true,
@@ -96,6 +97,7 @@ describe('exportArea', () => {
       y: 8,
       width: 44,
       height: 4,
+      scale: 3,
       pixelWidth: 132,
       pixelHeight: 12,
     });
@@ -119,6 +121,33 @@ describe('exportArea', () => {
     expect(() => exportArea(doc([]), opts({ trim: true }))).toThrow(
       expect.objectContaining({ code: 'E_EMPTY' }),
     );
+  });
+
+  it('caps the scale at maxSize', () => {
+    const area = exportArea(doc([line]), opts({ maxSize: 160 }));
+    expect(area).toMatchObject({ pixelWidth: 160, pixelHeight: 107 });
+    expect(area.scale).toBeCloseTo(160 / 300);
+  });
+
+  it('never raises the scale', () => {
+    expect(exportArea(doc([line]), opts({ maxSize: 1000 }))).toMatchObject({
+      pixelWidth: 600,
+      pixelHeight: 400,
+      scale: 2,
+    });
+  });
+
+  it('caps the trimmed area', () => {
+    const area = exportArea(doc([line]), opts({ trim: true, padding: 5, maxSize: 50 }));
+    expect(Math.max(area.pixelWidth, area.pixelHeight)).toBe(50);
+  });
+
+  it('clamps the short side to one pixel', () => {
+    const strip = { ...doc([]), size: { width: 2000, height: 10 } };
+    expect(exportArea(strip, opts({ scale: 1, maxSize: 160 }))).toMatchObject({
+      pixelWidth: 160,
+      pixelHeight: 1,
+    });
   });
 });
 
@@ -153,6 +182,13 @@ describe('exportImage', () => {
   it('offsets strokes by the trimmed origin', async () => {
     await exportImage(doc([line]), opts({ trim: true, scale: 3 }), undefined, deps);
     expect(calls.find((call) => call.op === 'setTransform')?.args).toEqual([3, 0, 0, 3, -24, -24]);
+  });
+
+  it('draws at the capped scale', async () => {
+    await exportImage(doc([line]), opts({ maxSize: 160 }), undefined, deps);
+    const [a, , , d] = calls.find((call) => call.op === 'setTransform')?.args ?? [];
+    expect(a).toBeCloseTo(160 / 300);
+    expect(d).toBeCloseTo(160 / 300);
   });
 
   it('rejects when the browser cannot encode', async () => {

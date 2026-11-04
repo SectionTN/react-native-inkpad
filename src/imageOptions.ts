@@ -4,6 +4,7 @@ export type NativeImageOptions = {
   format: 'png' | 'jpeg';
   quality: number;
   scale: number;
+  maxSize: number;
   trim: boolean;
   padding: number;
   background: boolean;
@@ -15,10 +16,12 @@ export function toNativeImageOptions(
   defaultScale: number,
 ): NativeImageOptions {
   const trim = options.trim ?? false;
+  const maxSize = options.maxSize ?? 0;
   return {
     format: options.format ?? 'png',
     quality: Math.min(1, Math.max(0, options.quality ?? 0.9)),
     scale: options.scale !== undefined && options.scale > 0 ? options.scale : defaultScale,
+    maxSize: Number.isFinite(maxSize) && maxSize >= 1 ? Math.floor(maxSize) : 0,
     trim: trim !== false,
     padding: typeof trim === 'object' ? Math.max(0, trim.padding) : 0,
     background: options.background ?? true,

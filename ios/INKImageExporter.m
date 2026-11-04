@@ -26,6 +26,7 @@ CGRect INKFitRect(CGSize image, CGSize box, BOOL cover)
   BOOL jpeg = [options[@"format"] isEqual:@"jpeg"];
   CGFloat quality = options[@"quality"] ? MIN(1, MAX(0, [options[@"quality"] doubleValue])) : 0.9;
   CGFloat scale = [options[@"scale"] doubleValue] > 0 ? [options[@"scale"] doubleValue] : UIScreen.mainScreen.scale;
+  NSInteger maxSize = [options[@"maxSize"] integerValue];
   BOOL trim = [options[@"trim"] boolValue];
   CGFloat padding = MAX(0, [options[@"padding"] doubleValue]);
   BOOL background = options[@"background"] ? [options[@"background"] boolValue] : YES;
@@ -38,6 +39,9 @@ CGRect INKFitRect(CGSize image, CGSize box, BOOL cover)
       return;
     }
     area = CGRectInset(drawing.bounds, -padding, -padding);
+  }
+  if (maxSize > 0) {
+    scale = MIN(scale, maxSize / MAX(area.size.width, area.size.height));
   }
   CGSize pixels = CGSizeMake(MAX(1, round(area.size.width * scale)), MAX(1, round(area.size.height * scale)));
 

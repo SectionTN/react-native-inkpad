@@ -13,6 +13,7 @@ export type ExportArea = {
   y: number;
   width: number;
   height: number;
+  scale: number;
   pixelWidth: number;
   pixelHeight: number;
 };
@@ -57,13 +58,18 @@ export function exportArea(doc: InkDocument, options: NativeImageOptions): Expor
     width = bounds.maxX - bounds.minX + options.padding * 2;
     height = bounds.maxY - bounds.minY + options.padding * 2;
   }
+  const scale =
+    options.maxSize > 0
+      ? Math.min(options.scale, options.maxSize / Math.max(width, height))
+      : options.scale;
   return {
     x,
     y,
     width,
     height,
-    pixelWidth: pixels(width, options.scale),
-    pixelHeight: pixels(height, options.scale),
+    scale,
+    pixelWidth: pixels(width, scale),
+    pixelHeight: pixels(height, scale),
   };
 }
 
@@ -83,7 +89,7 @@ export async function exportImage(
   if (options.format === 'jpeg')
     drawBackground(ctx, '#FFFFFFFF', area.pixelWidth, area.pixelHeight);
   if (options.background) drawBackground(ctx, backgroundColor, area.pixelWidth, area.pixelHeight);
-  const { scale } = options;
+  const { scale } = area;
   ctx.setTransform(scale, 0, 0, scale, -area.x * scale, -area.y * scale);
   if (options.background && backgroundImage) {
     drawBackgroundImage(ctx, backgroundImage.image, doc.size, backgroundImage.fit);

@@ -42,15 +42,16 @@ internal object ImageExporter {
       areaWidth = boxes.maxOf { it.xMax } + options.padding - left
       areaHeight = boxes.maxOf { it.yMax } + options.padding - top
     }
-    val pixelWidth = options.pixels(areaWidth)
-    val pixelHeight = options.pixels(areaHeight)
+    val scale = options.scaleFor(areaWidth, areaHeight)
+    val pixelWidth = options.pixels(areaWidth, scale)
+    val pixelHeight = options.pixels(areaHeight, scale)
     val bitmap = Bitmap.createBitmap(pixelWidth, pixelHeight, Bitmap.Config.ARGB_8888)
     try {
       val canvas = Canvas(bitmap)
       if (options.jpeg) canvas.drawColor(Color.WHITE)
       if (options.background && Color.alpha(canvasColor) > 0) canvas.drawColor(canvasColor)
       val transform = Matrix().apply {
-        setScale(options.scale, options.scale)
+        setScale(scale, scale)
         preTranslate(-left, -top)
       }
       canvas.concat(transform)
