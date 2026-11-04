@@ -14,3 +14,11 @@ export function uriOf(source: unknown): string | undefined {
   }
   return undefined;
 }
+
+export function absoluteUri(uri: string, base: string | undefined): string | undefined {
+  try {
+    return new URL(uri, base).href;
+  } catch {
+    return undefined;
+  }
+}
