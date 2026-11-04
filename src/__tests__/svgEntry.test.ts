@@ -78,7 +78,7 @@ describe('react-native-inkpad/svg', () => {
     );
   });
 
-  it('matches the root renderSVG', async () => {
+  it('matches renderSvgWith with stub resolvers', async () => {
     const { renderSVG } = await import('../svg');
     const options = {
       trim: true,

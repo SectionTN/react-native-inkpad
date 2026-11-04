@@ -148,6 +148,17 @@ describe('exportImage', () => {
     expect(d).toBeCloseTo(160 / 300);
   });
 
+  it('offsets a capped trimmed export by the scaled origin', async () => {
+    await exportImage(doc([line]), opts({ trim: true, scale: 2, maxSize: 60 }), undefined, deps);
+    const scale = 60 / 44;
+    const args = calls.find((call) => call.op === 'setTransform')?.args ?? [];
+    const expected = [scale, 0, 0, scale, -8 * scale, -8 * scale];
+    expect(args).toHaveLength(6);
+    expected.forEach((value, i) => {
+      expect(args[i]).toBeCloseTo(value);
+    });
+  });
+
   it('rejects when the browser cannot encode', async () => {
     await expect(exportImage(doc([line]), opts({}), undefined, failingDeps)).rejects.toMatchObject({
       code: 'E_EXPORT_FAILED',
